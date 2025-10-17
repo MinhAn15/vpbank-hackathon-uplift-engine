@@ -1,0 +1,3 @@
+strategy,cost,revenue,roi_pct
+traditional,500000000,596000000,19.2
+uplift_top30pct_model,150000000,182500000,21.666666666666668

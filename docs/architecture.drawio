@@ -1,0 +1,16 @@
+<!-- Placeholder Draw.io file for Uplift Engine architecture.
+This is a text placeholder. Install the "Draw.io Integration" extension in VS Code to create and edit a visual diagram at this path: docs/architecture.drawio
+
+Steps:
+1. Install Draw.io Integration in VS Code.
+2. Open docs/architecture.drawio and use the draw.io editor to construct the diagram.
+3. Save the .drawio file and export as PNG to docs/architecture.png
+
+Required flows to include:
+- Data Flow: Kinesis Data Streams -> S3 Data Lake -> AWS Glue -> SageMaker Feature Store
+- MLOps Training Pipeline: Step Functions orchestrating Glue Job -> SageMaker Training -> Model Registry
+- Real-time Inference: Client App -> API Gateway -> Lambda -> SageMaker Online Store -> SageMaker Endpoint -> Client App
+- Analytics: S3 Data Lake & SageMaker Offline Store -> Athena -> QuickSight
+
+Do not commit AWS credentials. Use environment variables and document them in research/04_aws_architecture_choices.md
+-->

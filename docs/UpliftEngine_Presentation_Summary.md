@@ -177,7 +177,7 @@ Bảng trên tóm tắt các ưu và nhược điểm của từng thuật toán
         3.  Đường cong Qini được vẽ bằng cách tích lũy lợi ích gia tăng này.
     * **Cách diễn giải:** Đường cong Qini càng cong và càng xa đường chéo (đại diện cho việc nhắm mục tiêu ngẫu nhiên), mô hình càng hiệu quả trong việc tìm ra sớm những khách hàng "Persuadables". Diện tích giữa đường cong Qini và đường chéo (gọi là AUUC) là một chỉ số duy nhất để so sánh hiệu năng tổng thể giữa các mô hình.
 
-    ![Qini Curve minh họa (AUUC)](images/qini_curve.svg)
+    ![Qini Curve minh họa (AUUC)](images/qini_curve.png)
 
 * **Profit@K (VND) - Thước Đo Kinh Doanh Tối Thượng:**
     * **Vấn đề của Qini/AUUC:** Chúng vẫn là những thước đo tương đối, chưa phản ánh trực tiếp lợi nhuận bằng tiền.
@@ -187,7 +187,7 @@ Bảng trên tóm tắt các ưu và nhược điểm của từng thuật toán
         Trong đó `i` là tập hợp các khách hàng thuộc top K% có điểm Uplift cao nhất.
     * **Ứng dụng:** Trong quy trình MLOps, mô hình chiến thắng không phải là mô hình có AUUC cao nhất, mà là mô hình có **Profit@K** (với K được quyết định bởi nghiệp vụ, ví dụ K=30%) cao nhất trên tập validation.
 
-    ![Profit@K minh họa (K=30%)](images/profit_at_k.svg)
+    ![Profit@K minh họa (K=30%)](images/profit_at_k.png)
 
 #### **2.4. Triển khai Huấn luyện trên SageMaker**
 
@@ -242,7 +242,7 @@ Bốn triết lý chính đã định hình các lựa chọn công nghệ của
 
 Hình dưới đây minh họa kiến trúc tổng thể của hệ thống Uplift Engine trên AWS, bao gồm các luồng Realtime và Offline/MLOps cùng các thành phần chính như API Gateway, Lambda (Decisioning + Guardrails + Optimizer), SageMaker Feature Store (Online/Offline), Step Functions, Training Jobs, DynamoDB và Kinesis.
 
-![Sơ đồ kiến trúc hệ thống (AWS)](images/architecture.svg)
+![Sơ đồ kiến trúc hệ thống (AWS)](images/architecture.png)
 
 Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Luồng Dữ liệu (Data Flow), Luồng Huấn luyện (MLOps Pipeline), Luồng Dự đoán (Real-time Inference), và Luồng Phân tích (Analytics), tất cả đều được tích hợp một cách liền mạch.
 
@@ -326,19 +326,21 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
     * **Input:** Mỗi Training Job nhận đầu vào là đường dẫn đến Offline Feature Store và các siêu tham số (hyperparameters) riêng.
     * **Process:** Mỗi job chạy script `train.py`, đọc dữ liệu, huấn luyện mô hình, và lưu model artifact (`model.tar.gz`) vào một đường dẫn riêng trên S3.
     * **Output:** Mảng các đường dẫn S3 trỏ đến các model artifact đã được huấn luyện.
-      {
-        "Comment": "Parallel training completed",
-        "TrainingResults": [
-          {
+```json
+{
+    "Comment": "Parallel training completed",
+    "TrainingResults": [
+        {
             "ModelArtifacts": "s3://.../catboost-model.tar.gz",
             "Algorithm": "CatBoostUplift"
-          },
-          {
+        },
+        {
             "ModelArtifacts": "s3://.../drlearner-model.tar.gz",
             "Algorithm": "DRLearner"
-          }
-        ]
-      }
+        }
+    ]
+}
+```
 
 
 3.  **State: `Choose Best Model` (Task - Lambda Function)**
@@ -351,13 +353,14 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
         c. Tính toán chỉ số kinh doanh quyết định: **Profit@K (VND)**.
         d. So sánh kết quả và xác định model có Profit@K cao nhất.
     * **Output:** JSON chứa đường dẫn S3 của model "chiến thắng" và các chỉ số đánh giá của nó.
-      "ChooseBestModel": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:...",
-      "InputPath": "$.TrainingResults",
-      "ResultPath": "$.BestModelSelection",
-      ...
-    }
+```json
+"ChooseBestModel": {
+    "Type": "Task",
+    "Resource": "arn:aws:lambda:...",
+    "InputPath": "$.TrainingResults",
+    "ResultPath": "$.BestModelSelection"
+}
+```
 4.  **State: `Register Model` (Task - SageMaker)**
     * **Trigger:** Chạy sau khi đã chọn được model tốt nhất.
     * **Action:** Step Functions gọi API `CreateModelPackage` của SageMaker.

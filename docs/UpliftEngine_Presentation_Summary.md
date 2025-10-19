@@ -5,7 +5,9 @@ Date: 2025-10-19
 
 Executive summary
 -----------------
-This document summarizes the Uplift Engine 2.1—an end-to-end, production-ready data platform designed to optimize promotion campaigns for VPBank through causal AI and MLOps practices. The summary is written at a master's-level technical depth and is intended for cross-functional audiences: product owners, cloud engineers, and ML scientists.
+Uplift Engine 2.1 is an operational causal-AI platform that finds customers whose behavior will change because of a promotion ("Persuadables") and chooses contacts to maximize incremental profit under budget constraints. This document translates the technical design, algorithms, and pilot economics into a concise, actionable proposal for VPBank stakeholders: product, engineering, marketing and risk.
+
+Expected outcomes: measurable uplift in incremental conversions, a significant reduction in wasted marketing spend, and auditable treatment and measurement that supports regulatory and product governance.
 
 1. Business context & goals
 ---------------------------
@@ -114,20 +116,29 @@ Assumptions:
 | Low potential (remaining) | 35,000 | 0.5% | 0.6% | 35 | 200,000 | 7,000,000 | 350,000,000 | -343,000,000 |
 
 Interpretation:
-- The table shows incremental conversions and revenue per segment. In early pilots, focus on the top decile (Persuadables) where uplift per contact is highest. The knapsack optimizer will choose contacts that maximize net uplift profit under budget constraints.
+- The table shows estimated incremental conversions and revenue per segment. For an early pilot, prioritize the top decile ('Persuadables') where uplift-per-contact is highest and ROI is most likely to be positive.
+- Use a knapsack-style optimizer to convert model scores into a treatment list that maximizes net uplift profit under the available budget and business rules. Run an A/B pilot to measure realized uplift and recalibrate the model and cost assumptions.
 
 Notes:
 - Replace these sample numbers with real campaign estimates before final proposals. The pilot should include an A/B test to measure real uplift and calibrate model uncertainty.
 
 Slide-ready one-page summary
 ----------------------------
-Use this page as a single-slide handout for executive review. Keep language concise and focused on impact, ask, and next steps.
+One-slide handout for executives — impact, ask, and immediate next steps.
 
-- Business goal: Increase incremental conversions and optimize marketing spend by targeting "Persuadables" using causal uplift models.
-- Product goal: Deliver an MVP in 4-6 weeks (data ingestion, uplift model, scoring API, ROI dashboard) and a production pilot in 3 months with hardened MLOps.
-- Architecture: Serverless real-time API (API Gateway -> Lambda w/ Provisioned Concurrency) + Feature Store + Tiered batch (Glue / EMR Serverless) for heavy workloads. Data Lake on S3.
-- Key algorithms: UpliftRandomForest (baseline), DR-Learner / EconML for robust CATE estimation, and knapsack optimization for budget-constrained selection.
-- Pilot ask: 50,000 customers; initial pilot budget estimate: 500M VND (example). Goal: prove >=20% reduction in wasted spend vs current propensity approach.
-- Success metrics: Incremental conversions, Profit@K, Qini/AUUC, ROI uplift, and model calibration (CI coverage).
-- Risks & mitigations: Cold-start latency -> PC; heavy batch -> EMR Serverless; Do-No-Harm -> DNC + CI-based thresholds.
-- Next steps: Approve pilot budget, provision S3/Feature Store, run 4-week MVP sprint, measure A/B uplift, scale.
+- Business goal: Increase incremental conversions and cut wasted marketing spend by targeting "Persuadables" with causal uplift models.
+- Product goal: MVP in 4–6 weeks (ingest → features → uplift model → scoring API → ROI dashboard); production pilot in ~3 months with MLOps and monitoring.
+- Architecture (summary): Serverless real-time API (API Gateway → Lambda w/ Provisioned Concurrency), Feature Store for training-serving parity, Data Lake on S3, tiered batch (Glue / EMR Serverless).
+- Algorithms: UpliftRandomForest (baseline), DR-Learner / EconML (robust CATE & uncertainty), knapsack optimizer for budgeted selection.
+- Pilot ask (example): 50k customers; pilot budget ~500M VND. Target: demonstrate >=20% reduction in wasted spend vs current propensity approach.
+- Success metrics: Incremental conversions, Profit@K, Qini/AUUC, ROI uplift, CI-calibrated treatment effects.
+- Key risks: latency (mitigate with Provisioned Concurrency), heavy ETL (use EMR Serverless), customer harm (DNC lists + CI thresholds + manual review).
+- Immediate next steps: approve pilot budget, grant data access to the team, appoint a single product owner, start a 4-week MVP sprint focused on measurable A/B uplift.
+
+Call to action
+--------------
+- Approve the pilot budget and data access (example ask: 500M VND and access to customer/event data stores).
+- Assign a product owner and a single technical lead (cloud engineer) to unblock infra and permissions.
+- Run a 4-week MVP sprint with a defined A/B pilot that measures uplift, ROI and recalibrates the model.
+
+The team will deliver a pilot report with measured Qini/AUUC, incremental conversions, and a recommended scale-up plan within 6 weeks of pilot start.

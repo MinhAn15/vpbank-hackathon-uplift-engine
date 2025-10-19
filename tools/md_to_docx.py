@@ -84,6 +84,14 @@ def md_to_docx(md_path: Path, docx_path: Path):
             render_table(doc, tbl_lines)
             continue
         # Paragraph
+        # If we hit the Slide-ready section header, render the following block as a slide
+        if re.match(r'^Slide-ready one-page summary', line):
+            i += 1
+            render_slide_summary(doc, lines, i)
+            # advance index past the slide block: find next blank line after summary end
+            while i < len(lines) and lines[i].strip() != '':
+                i += 1
+            continue
         add_paragraph(doc, line)
         i += 1
 
@@ -105,6 +113,30 @@ def render_table(doc, tbl_lines):
     for i, row in enumerate(data, start=1):
         for j, cell in enumerate(row):
             table.rows[i].cells[j].text = cell
+
+
+def render_slide_summary(doc, lines, start_idx):
+    # Render a compact, centered slide-style page for executives
+    doc.add_page_break()
+    p = doc.add_paragraph()
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    run = p.add_run('Executive Summary — Pilot Ask & Impact\n')
+    run.bold = True
+    run.font.size = Pt(16)
+    doc.add_paragraph()
+    # collect up to 12 non-empty lines or until next section
+    i = start_idx
+    bullets = []
+    while i < len(lines):
+        ln = lines[i].strip()
+        if not ln:
+            break
+        bullets.append(ln)
+        i += 1
+    for b in bullets:
+        p = doc.add_paragraph(b, style='List Bullet')
+        p.runs[0].font.size = Pt(12)
+    doc.add_page_break()
 
 
 if __name__ == '__main__':

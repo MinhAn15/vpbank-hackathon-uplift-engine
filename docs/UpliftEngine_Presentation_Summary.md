@@ -118,3 +118,16 @@ Interpretation:
 
 Notes:
 - Replace these sample numbers with real campaign estimates before final proposals. The pilot should include an A/B test to measure real uplift and calibrate model uncertainty.
+
+Slide-ready one-page summary
+----------------------------
+Use this page as a single-slide handout for executive review. Keep language concise and focused on impact, ask, and next steps.
+
+- Business goal: Increase incremental conversions and optimize marketing spend by targeting "Persuadables" using causal uplift models.
+- Product goal: Deliver an MVP in 4-6 weeks (data ingestion, uplift model, scoring API, ROI dashboard) and a production pilot in 3 months with hardened MLOps.
+- Architecture: Serverless real-time API (API Gateway -> Lambda w/ Provisioned Concurrency) + Feature Store + Tiered batch (Glue / EMR Serverless) for heavy workloads. Data Lake on S3.
+- Key algorithms: UpliftRandomForest (baseline), DR-Learner / EconML for robust CATE estimation, and knapsack optimization for budget-constrained selection.
+- Pilot ask: 50,000 customers; initial pilot budget estimate: 500M VND (example). Goal: prove >=20% reduction in wasted spend vs current propensity approach.
+- Success metrics: Incremental conversions, Profit@K, Qini/AUUC, ROI uplift, and model calibration (CI coverage).
+- Risks & mitigations: Cold-start latency -> PC; heavy batch -> EMR Serverless; Do-No-Harm -> DNC + CI-based thresholds.
+- Next steps: Approve pilot budget, provision S3/Feature Store, run 4-week MVP sprint, measure A/B uplift, scale.

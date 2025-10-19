@@ -41,6 +41,7 @@
     * 6.1. Lộ Trình Triển Khai theo Từng Giai Đoạn.
     * 6.2. Mở Rộng Ngoài Khuyến Mãi: Next Best Action, Dynamic Pricing.
     * 6.3. Tầm Nhìn Về Quản Trị Rủi Ro & Explainable AI (XAI).
+    * 6.4. Agile Delivery & Ways of Working.
 
 ---
 
@@ -690,6 +691,49 @@ Sau khi chứng minh giá trị ở miền khuyến mãi, cùng các mô-đun t�
 - Governance & Compliance: Thiết lập SLA/SLO cho độ trễ, độ sẵn sàng; kiểm soát truy cập qua IAM least-privilege; mã hóa end-to-end (KMS); log bất biến (immutability) cho audit trail; và quy trình rollback chuẩn hóa. Đối với dữ liệu nhạy cảm, áp dụng differential privacy hoặc k-anonymity ở các bước phân tích khi phù hợp.
 
 Các thực hành trên củng cố niềm tin, giảm rủi ro hoạt động và pháp lý, và tạo nền tảng để mở rộng Uplift Engine trên quy mô tổ chức.
+
+
+#### **6.4. Agile Delivery & Ways of Working**
+
+Chúng tôi thực hiện dự án theo Agile để gia tăng tốc độ học hỏi và đưa giá trị kinh doanh ra sớm, đồng thời vẫn đảm bảo tuân thủ và chất lượng vận hành.
+
+- Vai trò & Nhóm nòng cốt (cross-functional):
+    - Product Owner (PO): đại diện nghiệp vụ (VD: PO Thẻ Tín Dụng), chịu trách nhiệm ROI/KPI, ưu tiên backlog.
+    - Tech Lead: kiến trúc tổng thể, chuẩn chất lượng kỹ thuật, quyết định kỹ thuật then chốt.
+    - ML Engineer/Scientist: mô hình hóa uplift, đánh giá (Qini/AUUC/Profit@K), packaging & MLOps.
+    - Data Engineer: Feature Store (online/offline), ETL/ELT, point-in-time correctness.
+    - Cloud/DevOps: CI/CD, IaC, bảo mật, quan sát (observability), cost governance.
+    - QA/Analytics: kiểm thử, kiểm định số liệu, dashboard & báo cáo.
+
+- Nghi thức (ceremonies):
+    - Sprint Planning (chu kỳ 2 tuần), Daily Standup 15’, Sprint Review + Demo (nhấn mạnh Profit@K/ROI), Sprint Retrospective, Backlog Refinement hàng tuần.
+
+- Định nghĩa Sẵn sàng/Hoàn thành (DoR/DoD):
+    - DoR: User Story có business outcome rõ ràng, Acceptance Criteria (AC) đo lường được, dữ liệu sẵn có hoặc kế hoạch tạo dữ liệu, ràng buộc tuân thủ xác định (PII, retention, IAM).
+    - DoD: Code + test pass, IaC validated/applied (có approval khi cần), dashboard/alert cập nhật, tài liệu “How to run” ngắn, và demo số liệu trên UAT/Prod (tùy story).
+
+- Lộ trình Sprint (Giai đoạn 1 – Pilot, đề xuất 4 sprint):
+    - Sprint 0: Khởi tạo repo, IaC khung (permissions tối thiểu), Feature Store skeleton, data contract, baseline notebook → script, Step Functions skeleton, alarm cơ bản (API/Lambda/Endpoint).
+    - Sprint 1: UpliftRF baseline end-to-end (train→deploy→score), exposure logging (Kinesis), dashboard KPI tối thiểu (AUUC, Profit@K), guardrails hard-rules (DNC).
+    - Sprint 2: “Model race” DR-Learner + CatBoostUplift, chọn Best theo Profit@K, guardrails soft-rules (CI lower bound), knapsack optimizer trong Lambda (quy mô pilot).
+    - Sprint 3: A/B test có kiểm soát, báo cáo Net Profit Uplift, Model Card chuẩn hóa, review bảo mật & tuân thủ, chuẩn bị mở rộng Giai đoạn 2.
+
+- CI/CD & Phát hành:
+    - Quy trình PR với checks bắt buộc: unit tests, lint, IaC validate/plan, security scan cơ bản. Triển khai canary/blue-green cho Endpoint & Lambda, feature flags cho client.
+    - Tự động: build container/train script, deploy endpoint, warm-up, rollback tự động theo alarm; phát hành theo môi trường dev→uat→prod với gate phê duyệt.
+
+- Vòng lặp thử nghiệm (experiment loop):
+    - Giả thuyết → Thiết kế (story + AC) → Thực thi → Đo lường (Qini/AUUC, Profit@K, ROI) → Quyết định (keep/iterate/stop) → Ghi nhận Model Card + changelog.
+
+- KPI Agile & sản phẩm:
+    - Sản phẩm: Net Profit Uplift (VND), Profit@K, ROI, % ngân sách tiết kiệm, E2E decision latency.
+    - Vận hành: P95/P99 latency, error rate, drift events, MTTR, tỉ lệ rollback.
+    - Agile: Lead time for change, deployment frequency, change fail rate.
+
+- Tuân thủ tích hợp (compliance hooks):
+    - Gate “Human Approval” trong Step Functions trước khi promote model.
+    - Checklist MRM + Model Card cập nhật mỗi release; guardrails đạo đức (do-no-harm) kiểm tra tự động trong CI.
+    - Chính sách dữ liệu: IAM least-privilege, KMS, log retention, masking/tokenization khi cần, định kỳ review quyền truy cập.
 
 
 

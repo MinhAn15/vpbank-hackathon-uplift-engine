@@ -7,13 +7,24 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
+from docx.shared import RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import re
 from pathlib import Path
 
 
 def add_heading(doc, text, level):
-    doc.add_heading(text, level=level)
+    # Map markdown heading level to Word heading and style it
+    h = doc.add_heading(text, level=level)
+    # Apply Times New Roman for headings
+    for run in h.runs:
+        run.font.name = 'Times New Roman'
+        if level == 1:
+            run.font.size = Pt(18)
+        elif level == 2:
+            run.font.size = Pt(14)
+        else:
+            run.font.size = Pt(12)
 
 
 def add_paragraph(doc, text):
@@ -31,16 +42,27 @@ def add_list(doc, lines):
 
 def md_to_docx(md_path: Path, docx_path: Path):
     doc = Document()
+    # Set default Normal style to Arial 11 for body text
+    try:
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Arial'
+        font.size = Pt(11)
+    except Exception:
+        pass
     # Cover page
     title = doc.add_paragraph()
     title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     run = title.add_run('Uplift Engine 2.1 — Project Summary\n')
-    run.font.size = Pt(24)
+    run.font.name = 'Times New Roman'
+    run.font.size = Pt(26)
     run.bold = True
     doc.add_paragraph()
     meta = doc.add_paragraph()
     meta.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    meta.add_run('Author: Team Uplift\nDate: 2025-10-19')
+    meta_run = meta.add_run('Author: Team Uplift\nDate: 2025-10-19')
+    meta_run.font.name = 'Arial'
+    meta_run.font.size = Pt(11)
     doc.add_page_break()
 
     # Table of Contents (Word will render it when the doc is opened and TOC updated)

@@ -97,3 +97,24 @@ To-do for finishing the Word document
 3. Finalize language and citations (assigned: Team Lead / ML Scientist)
 4. Convert to .docx and add TOC, headings, and company cover page. (assigned: Cloud Engineer)
 5. Final review & sign-off. (assigned: Team Lead)
+
+Case study — Simulated pilot (example)
+-------------------------------------
+This one-page example demonstrates how we compute expected uplift ROI for a pilot promotion targeted by the Uplift Engine. Values are illustrative; replace with real business numbers for production pilots.
+
+Assumptions:
+- Pilot population: 50,000 customers
+- Treatment cost (per contact): 10,000 VND
+- Average revenue per conversion: 200,000 VND
+
+| Segment | N | Control conv rate | Treated conv rate | Incremental conv (est) | Revenue / conv (VND) | Incremental revenue (VND) | Cost (VND) | Net uplift profit (VND) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Persuadables (top decile) | 5,000 | 2.0% | 6.0% | 200 | 200,000 | 40,000,000 | 50,000,000 | -10,000,000 |
+| High potential (next 20%) | 10,000 | 1.5% | 3.5% | 200 | 200,000 | 40,000,000 | 100,000,000 | -60,000,000 |
+| Low potential (remaining) | 35,000 | 0.5% | 0.6% | 35 | 200,000 | 7,000,000 | 350,000,000 | -343,000,000 |
+
+Interpretation:
+- The table shows incremental conversions and revenue per segment. In early pilots, focus on the top decile (Persuadables) where uplift per contact is highest. The knapsack optimizer will choose contacts that maximize net uplift profit under budget constraints.
+
+Notes:
+- Replace these sample numbers with real campaign estimates before final proposals. The pilot should include an A/B test to measure real uplift and calibrate model uncertainty.

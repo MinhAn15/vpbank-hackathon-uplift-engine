@@ -4,7 +4,10 @@ This script performs lightweight conversions: headings to Word headings, paragra
 and simple lists. It's intentionally small and deterministic for the hackathon.
 """
 from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import re
 from pathlib import Path
 
@@ -28,8 +31,25 @@ def add_list(doc, lines):
 
 def md_to_docx(md_path: Path, docx_path: Path):
     doc = Document()
-    doc.add_heading('Uplift Engine 2.1 — Project Summary', level=1)
+    # Cover page
+    title = doc.add_paragraph()
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    run = title.add_run('Uplift Engine 2.1 — Project Summary\n')
+    run.font.size = Pt(24)
+    run.bold = True
     doc.add_paragraph()
+    meta = doc.add_paragraph()
+    meta.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    meta.add_run('Author: Team Uplift\nDate: 2025-10-19')
+    doc.add_page_break()
+
+    # Table of Contents (Word will render it when the doc is opened and TOC updated)
+    toc_para = doc.add_paragraph()
+    fld = OxmlElement('w:fldSimple')
+    # Use double backslashes so Python does not interpret \u as a unicode escape
+    fld.set(qn('w:instr'), 'TOC \\o "1-3" \\h \\z \\u')
+    toc_para._p.append(fld)
+    doc.add_page_break()
 
     lines = md_path.read_text(encoding='utf-8').splitlines()
     i = 0
@@ -54,11 +74,37 @@ def md_to_docx(md_path: Path, docx_path: Path):
                 i += 1
             add_list(doc, buffer)
             continue
+        # Markdown table
+        if re.match(r'^\|', line):
+            # collect contiguous table lines
+            tbl_lines = []
+            while i < len(lines) and re.match(r'^\|', lines[i]):
+                tbl_lines.append(lines[i])
+                i += 1
+            render_table(doc, tbl_lines)
+            continue
         # Paragraph
         add_paragraph(doc, line)
         i += 1
 
     doc.save(docx_path)
+
+
+def render_table(doc, tbl_lines):
+    # Simple pipe-separated table renderer. First line = header, second = separator
+    rows = [ [cell.strip() for cell in re.split(r'\|', ln)[1:-1]] for ln in tbl_lines]
+    if len(rows) < 2:
+        return
+    header = rows[0]
+    data = rows[2:] if re.match(r'^[\s\|:-]+$', rows[1][0]) else rows[1:]
+    table = doc.add_table(rows=1+len(data), cols=len(header))
+    table.style = 'Light List'
+    hdr_cells = table.rows[0].cells
+    for j, h in enumerate(header):
+        hdr_cells[j].text = h
+    for i, row in enumerate(data, start=1):
+        for j, cell in enumerate(row):
+            table.rows[i].cells[j].text = cell
 
 
 if __name__ == '__main__':

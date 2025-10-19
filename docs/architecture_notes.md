@@ -25,3 +25,6 @@ Notes
 
 Contact
 - If you need a hand editing the .drawio, attach it here or tell me and I can attempt to modify the XML programmatically.
+
+Version note
+- Architecture v2.1 — includes Provisioned Concurrency & Tiered Batch (Glue / EMR Serverless). Add author/date box on the diagram.

@@ -39,13 +39,13 @@ Q&A prep (short answers)
 7) Uplift Engine 2.1 (Cloud Engineer + Team Lead) — 60s
     - Slide title: "Uplift Engine 2.1 — production-readiness & cost/perf trade-offs"
     - Bullet points on slide:
-       - "Provisioned Concurrency for Lambda inference — eliminates cold-starts, low-latency SLA"
-       - "Kinesis for near-real-time features; instant features computed in-app before API call"
+       - "Provisioned Concurrency for Lambda inference — eliminates cold-starts, ensures low-latency SLA"
+       - "Kinesis for near-real-time features; compute instant features in-app before API call"
        - "Tiered batch: AWS Glue (default) + EMR Serverless for heavy Spark jobs"
     - Speaker notes (what to say):
-       - Cloud Engineer: "We tuned the real-time path for SLA by using Provisioned Concurrency to remove cold starts; for near-real-time features we keep Kinesis, but for instant requirements we compute at the application layer before calling the API."
-       - Team Lead: "For batch workloads we use a tiered approach — Glue for daily jobs and EMR Serverless for heavy feature engineering. This keeps costs predictable while enabling high-performance processing when needed."
-    - Optional callouts: mention trade-offs — PC adds reserved cost; EMR Serverless costs when heavy jobs run but avoids OOM/timeouts on Glue.
+       - Cloud Engineer: "Mentor feedback highlighted two operational scars: Kinesis latency and Lambda cold starts. We classify features by latency need, compute instant features in the application layer, and use Provisioned Concurrency to keep inference latency consistent."
+       - Team Lead: "For batch processing we apply a two-tier strategy — Glue for day-to-day jobs and EMR Serverless for heavy or complex jobs. This balances cost predictability with the ability to handle large-scale feature engineering without OOMs or timeouts."
+    - Optional callouts: mention trade-offs — Provisioned Concurrency incurs a reserved cost; EMR Serverless incurs cost only when jobs run but avoids failure modes on Glue for heavy jobs.
 
 Contact
 - Team Lead: [name/email]

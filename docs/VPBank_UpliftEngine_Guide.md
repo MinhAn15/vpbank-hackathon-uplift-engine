@@ -50,46 +50,51 @@ This guide details the end-to-end process for building a modernized, ROI-driven 
 
 ---
 
-## Uplift Engine 2.1 — Production-readiness Improvements
-Thực hiện các nâng cấp chiến lược để đưa giải pháp từ "chuẩn kiến trúc" lên "sẵn sàng cho production" bằng cách giải quyết hai vấn đề phổ biến: độ trễ (latency) trong luồng real-time và hiệu năng/chi phí trong luồng batch.
-
-### 1) Tinh Chỉnh Luồng Real-time — Giải Quyết Vấn Đề Độ Trễ
-Vấn đề thực tế:
-- Kinesis Data Streams & PutRecord có độ trễ nội tại (vài giây) cho các luồng near-real-time.
-- AWS Lambda có thể gặp cold starts, gây độ trễ cho các request đầu tiên.
-
-Giải pháp Uplift Engine 2.1:
-- Phân loại feature theo yêu cầu latency: chấp nhận các feature near-real-time (ví dụ: số giao dịch 5 phút gần nhất) qua Kinesis; tính toán các feature cần latency rất thấp ngay tại application layer trước khi gọi API.
-- Kích hoạt Provisioned Concurrency (PC) cho Lambda inference để loại bỏ cold start. PC giữ một số instance Lambda luôn sẵn sàng, đảm bảo độ trễ thấp và ổn định phù hợp với SLA ngân hàng.
-
-Lợi ích:
-- Độ trễ đầu cuối (end-to-end) được kiểm soát tốt hơn, giảm thiểu biến động do cold start.
-- Kiến trúc vẫn giữ được tính serverless và đơn giản trong vận hành.
-
-### 2) Tinh Chỉnh Luồng Batch — Giải Quyết Vấn Đề Big Data & Chi Phí
-Vấn đề thực tế:
-- AWS Glue có thể không hiệu quả về chi phí và thời gian khi xử lý dữ liệu cực lớn hoặc các job Spark phức tạp (>10+ GB hoặc khi cần xử lý phi cấu trúc).
-
-Giải pháp Uplift Engine 2.1:
-- Áp dụng kiến trúc Tiered Processing:
   - Bậc 1 (Default): AWS Glue cho các job hàng ngày quy mô vừa và nhỏ — serverless, đơn giản, chi phí hiệu quả.
   - Bậc 2 (Heavy): Amazon EMR Serverless tự động kích hoạt cho các job feature engineering lớn hoặc xử lý dữ liệu phức tạp. EMR Serverless cung cấp công suất Spark mà không cần quản lý cụm.
-
-Lợi ích:
-- Cân bằng giữa chi phí và hiệu năng: dùng Glue cho khối lượng công việc thông thường, chuyển sang EMR Serverless khi cần khả năng xử lý lớn hơn.
-- Giảm rủi ro timeout/OOM trên Glue cho job nặng.
-
-### 3) Cập Nhật Kiến Trúc & Tài Liệu
-- Trong `docs/architecture.png`:
   - Thêm chú thích cho icon Lambda: "w/ Provisioned Concurrency for low latency".
   - Đổi tên AWS Glue thành: "AWS Glue / EMR Serverless" và thêm chú thích: "Tiered processing for cost/performance optimization".
-- Trong `docs/presentation.pdf` và `docs/presenter_notes.md`: bổ sung slide và ghi chú mô tả trade-offs, lợi ích của Provisioned Concurrency và kiến trúc 2-bậc cho batch.
+## Uplift Engine 2.1 — Giải pháp tinh chỉnh (production-ready)
+"Gợi ý của mentor là những vết sẹo thực tế" — dựa trên feedback này, chúng ta giữ nguyên kiến trúc cơ bản nhưng thêm các nâng cấp chiến lược để giải quyết trực tiếp hai điểm đau phổ biến: độ trễ (latency) của luồng real-time và chi phí/hiệu năng của luồng batch.
 
-### 4) Vận hành và chi phí
-- Provisioned Concurrency mang lại hiệu năng ổn định nhưng có chi phí cố định theo số lượng concurrency được provisioned; cân nhắc auto-scaling provisioned concurrency hoặc chạy trong windows cao điểm.
-- EMR Serverless tính phí theo sử dụng; cấu hình hợp lý job parallelism và partitioning sẽ tối ưu chi phí.
+### 1. Tinh Chỉnh Luồng Real-time: Giải quyết độ trễ
+Vấn đề mentor nêu ra:
+1. Kinesis Data Streams & `PutRecord` có độ trễ nội tại (vài giây) cho các tính năng near-real-time.
+2. AWS Lambda có thể gặp cold-start, ảnh hưởng đến các request đầu tiên và gây biến động latency.
 
-Tóm lại, "Uplift Engine 2.1" là một tinh chỉnh thực tế, giữ nguyên nền tảng serverless khi phù hợp nhưng thêm các cơ chế production-ready để đáp ứng SLA ngân hàng và xử lý các tác vụ Big Data thực sự.
+Giải pháp Uplift Engine 2.1:
+- Phân loại feature theo yêu cầu latency: chấp nhận các feature near-real-time (ví dụ: số giao dịch 5 phút gần nhất) được cập nhật qua Kinesis; những feature cần phản hồi tức thì sẽ được tính toán ở tầng ứng dụng (application layer) trước khi gọi API scoring.
+- "Làm nóng" Lambda bằng Provisioned Concurrency (PC):
+  - PC giữ một số instances của Lambda luôn sẵn sàng, loại bỏ cold starts.
+  - Kết quả: độ trễ ổn định, phù hợp SLA ngân hàng.
+
+Lợi ích chính:
+- Loại bỏ cold-start và giảm biến động latency.
+- Giữ được lợi ích serverless (không quản lý server) đồng thời đáp ứng yêu cầu độ trễ nghiêm ngặt.
+
+### 2. Tinh Chỉnh Luồng Batch: Giải quyết Big Data & chi phí
+Vấn đề mentor nêu ra:
+- AWS Glue có thể không hiệu quả khi xử lý khối lượng dữ liệu rất lớn (>10 GB mỗi job), hoặc các tác vụ Spark phức tạp/phi cấu trúc.
+
+Giải pháp Uplift Engine 2.1: Kiến trúc bậc thang (Tiered Processing)
+- Bậc 1 (mặc định): AWS Glue — sử dụng cho job ngày thường, quy mô vừa và nhỏ; chi phí hiệu quả và ít quản lý.
+- Bậc 2 (heavy): Amazon EMR Serverless — tự động kích hoạt cho job feature engineering lớn hoặc xử lý phi cấu trúc; cung cấp sức mạnh Spark mà không cần quản lý cluster.
+
+Lợi ích chính:
+- Cân bằng chi phí và hiệu năng: Glue cho khối lượng công việc thường xuyên, EMR Serverless cho các job nặng giúp tránh OOM/timeouts.
+- Giảm rủi ro và tăng độ bền cho pipeline khi xử lý dữ liệu lớn.
+
+### 3. Cập nhật sơ đồ kiến trúc & tài liệu
+- Sửa `docs/architecture.png`:
+  - Thêm chú thích tại Lambda: "w/ Provisioned Concurrency for low latency".
+  - Đổi nhãn AWS Glue → "AWS Glue / EMR Serverless" và thêm phụ đề: "Tiered processing for cost/performance optimization".
+- Cập nhật `docs/presenter_notes.md` và slide trình bày để mô tả trade-offs và lý do chọn PC + Tiered Batch.
+
+### 4. Vận hành & chi phí (ghi chú ngắn)
+- Provisioned Concurrency mang lại độ trễ ổn định nhưng có chi phí cố định theo số lượng concurrency; cân nhắc auto-scaling PC hoặc chỉ provision vào windows cao điểm.
+- EMR Serverless tính phí theo thời gian sử dụng; cấu hình partitioning và parallelism hợp lý sẽ tối ưu chi phí.
+
+Kết luận: "Uplift Engine 2.1" là một tập các tinh chỉnh thực tế, không lật lại toàn bộ kiến trúc, mà thêm cơ chế production-ready để đáp ứng SLA ngành ngân hàng và xử lý Big Data quy mô lớn.
 
 ---
 

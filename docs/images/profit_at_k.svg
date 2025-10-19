@@ -1,0 +1,29 @@
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Roboto, Arial">
+  <rect x="0" y="0" width="900" height="500" fill="#ffffff"/>
+  <text x="450" y="30" text-anchor="middle" font-size="20" fill="#111827">Profit@K — Business Profit vs Targeting %</text>
+
+  <!-- Axes -->
+  <line x1="80" y1="420" x2="820" y2="420" stroke="#111827" stroke-width="2"/>
+  <line x1="80" y1="60" x2="80" y2="420" stroke="#111827" stroke-width="2"/>
+  <text x="450" y="455" text-anchor="middle" font-size="14">Top-K% targeted</text>
+  <text x="20" y="240" transform="rotate(-90 20,240)" font-size="14">Net Profit (VND)</text>
+
+  <!-- Profit curve -->
+  <path d="M80 400 C 220 300, 360 220, 440 200 S 620 210, 820 260" fill="none" stroke="#16a34a" stroke-width="3"/>
+
+  <!-- Marker at K=30% -->
+  <line x1="320" y1="420" x2="320" y2="230" stroke="#94a3b8" stroke-dasharray="5 5"/>
+  <circle cx="320" cy="260" r="5" fill="#16a34a"/>
+  <rect x="330" y="220" width="200" height="52" rx="6" fill="#ecfdf5" stroke="#10b981"/>
+  <text x="430" y="240" text-anchor="middle" font-size="13" fill="#065f46">Profit@K (K = 30%)</text>
+  <text x="430" y="258" text-anchor="middle" font-size="12" fill="#065f46">Max business profit in validation</text>
+
+  <!-- X-axis ticks -->
+  <g fill="#6b7280" font-size="11">
+    <text x="80" y="440">0</text>
+    <text x="260" y="440">25</text>
+    <text x="440" y="440">50</text>
+    <text x="620" y="440">75</text>
+    <text x="800" y="440">100</text>
+  </g>
+</svg>

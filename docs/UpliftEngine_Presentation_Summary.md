@@ -40,16 +40,31 @@
 7.  **Chương 6: Lộ Trình Triển Khai & Tầm Nhìn Tương Lai**
     * 6.1. Lộ Trình Triển Khai theo Từng Giai Đoạn.
     * 6.2. Mở Rộng Ngoài Khuyến Mãi: Next Best Action, Dynamic Pricing.
+    * 6.3. Tầm Nhìn Về Quản Trị Rủi Ro & Explainable AI (XAI).
 
 ---
 
+> Ghi chú thuật ngữ (dùng nhất quán trong tài liệu):
+> - Causal AI: AI Nhân quả (giữ nguyên tiếng Anh khi nhắc đến lĩnh vực/chuyên ngành).
+> - Uplift Score: Điểm ước tính hiệu ứng can thiệp cá nhân (ITE).
+> - Net Profit Uplift: Lợi nhuận thuần gia tăng = Incremental Revenue − Cost of Treatment.
+> - Profit@K: Lợi nhuận (VND) khi target Top-K% theo Uplift Score.
+> - Tên biến trong code: dùng snake_case, ví dụ `uplift_score`, `uplift_std_error`.
+
 ### **1. Tóm Tắt Quản Trị (Executive Summary)**
 
-Các nền tảng dữ liệu cho chiến dịch khuyến mãi truyền thống tại các ngân hàng thường tập trung vào việc **báo cáo quá khứ (reporting)** và **dự đoán tương lai (predictive analytics)**. Tuy nhiên, chúng thất bại trong việc trả lời câu hỏi kinh doanh quan trọng nhất: **"Hành động nào của chúng ta sẽ mang lại lợi nhuận cao nhất?"**. Điều này dẫn đến sự lãng phí ngân sách marketing lên đến 70% vào các nhóm khách hàng không tạo ra giá trị gia tăng.
+Các nền tảng dữ liệu khuyến mãi truyền thống thường:
+- Tập trung vào báo cáo quá khứ và dự đoán tương lai, nhưng ít trả lời câu hỏi: hành động nào mang lại lợi nhuận cao nhất?
+- Dẫn đến lãng phí ngân sách tới 70% ở các nhóm không tạo giá trị gia tăng.
 
-**"Uplift Engine"** là một sự thay đổi mô hình. Đây không chỉ là một Data Platform, mà là một **cỗ máy ra quyết định (Decisioning Engine)**. Bằng cách áp dụng **Causal AI (AI Nhân quả)**, chúng tôi chuyển dịch từ việc dự đoán *"Ai sẽ mua?"* sang việc chỉ định *"Nên tác động vào ai để tối đa hóa lợi nhuận?"*.
+"Uplift Engine" mang lại thay đổi quan trọng:
+- Không chỉ là Data Platform mà là một cỗ máy ra quyết định (Decisioning Engine).
+- Áp dụng Causal AI để chuyển từ dự đoán “Ai sẽ mua?” sang chỉ định “Nên tác động vào ai để tối đa hóa lợi nhuận?”.
 
-Giải pháp được xây dựng trên một kiến trúc MLOps serverless hiện đại của AWS, với **SageMaker Feature Store** làm trung tâm, đảm bảo khả năng mở rộng, độ trễ cực thấp (<100ms), và tính nhất quán tuyệt đối của dữ liệu. Kết quả thử nghiệm dựa trên dữ liệu mô phỏng cho thấy **"Uplift Engine"** có khả năng **tăng 308% ROI** và **tiết kiệm 70% ngân sách** so với các phương pháp tiếp cận truyền thống.
+Kiến trúc và tác động:
+- Xây trên MLOps serverless của AWS với SageMaker Feature Store làm trung tâm.
+- Độ trễ realtime < 100ms, dữ liệu nhất quán, dễ mở rộng.
+- Kết quả mô phỏng: tăng 308% ROI và tiết kiệm 70% ngân sách so với cách truyền thống.
 
 ---
 ### **Chương 1: Bối Cảnh & Thách Thức Kinh Doanh**
@@ -68,9 +83,29 @@ Gốc rễ của vấn đề lãng phí trong các chiến dịch marketing dự
 
 #### **1.2. Tại Sao Các Mô Hình Propensity Truyền Thống Thất Bại?**
 
-Một mô hình dự đoán khả năng chuyển đổi (Propensity Model) - ví dụ như mô hình hồi quy logistic hoặc XGBoost được huấn luyện để dự đoán `P(Conversion)` - về cơ bản là "mù" trước sự khác biệt giữa hai nhóm **Persuadables** và **Sure Things**. Cả hai nhóm này đều có đặc điểm của những khách hàng sẽ chuyển đổi, do đó mô hình sẽ trả về điểm số propensity cao cho cả hai.
+Vấn đề cốt lõi:
+- Propensity Model dự đoán `P(Conversion)` → không phân biệt được giữa Persuadables và Sure Things.
+- Kết quả: nhắm mục tiêu cả những người sẽ mua dù không có khuyến mãi → lãng phí ngân sách, bào mòn lợi nhuận.
 
-Khi một Marketer dựa vào mô hình này và nhắm mục tiêu vào nhóm có điểm propensity cao nhất, họ đang vô tình "đốt tiền" vào nhóm "Sure Things", vốn không cần đến sự can thiệp đó.
+#### **1.2.1. Phân Rã Thất Bại Của Mô Hình Propensity: Một Ví dụ Định Lượng**
+
+Kịch bản:
+- Chiến dịch: VPBank nhắm 100,000 khách hàng có điểm propensity cao nhất để mở thẻ tín dụng.
+- Chi phí: 50,000 VND/ưu đãi → tổng chi phí 5 tỷ VND.
+- Kết quả bề mặt: 10,000 chuyển đổi (CR = 10%) → doanh thu 10 tỷ VND → lợi nhuận bề mặt 5 tỷ VND.
+
+Phân rã theo lăng kính Causal AI:
+- 8,000 "Sure Things": Doanh thu này là tự nhiên, không do chiến dịch tạo ra.
+- 2,000 "Persuadables": Nhóm duy nhất mà chiến dịch thực sự tạo ra chuyển đổi.
+
+Phân tích lãng phí & lợi nhuận thực sự:
+- Chi phí “đốt” vào Sure Things = 8,000 × 50,000 = 4 tỷ VND.
+- Lợi nhuận thực sự = Doanh thu từ Persuadables − Tổng chi phí
+    = (2,000 × 1,000,000) − 5,000,000,000 = −3 tỷ VND.
+
+Kết luận:
+- Chiến dịch tưởng lãi 5 tỷ thực chất lỗ 3 tỷ nếu bỏ qua yếu tố nhân quả.
+- Cần Causal AI và Uplift Score để nhận diện và chỉ nhắm vào 2,000 Persuadables, tối đa hóa Net Profit Uplift.
 
 #### **1.3. Mục Tiêu Chiến Lược: Tối Đa Hóa Lợi Nhuận Thuần Gia Tăng (Net Profit Uplift)**
 
@@ -91,40 +126,43 @@ Toàn bộ kiến trúc và lựa chọn kỹ thuật của chúng tôi đều x
 
 #### **2.1. Giới thiệu chi tiết về Causal Inference và Uplift Modeling**
 
-Causal Inference là một nhánh của thống kê và khoa học máy tính tập trung vào việc xác định mối quan hệ nguyên nhân - kết quả. Trong bối cảnh của chúng ta, nó giúp trả lời câu hỏi phản thực tế (counterfactual): *"Điều gì sẽ xảy ra với khách hàng A nếu chúng ta **không** gửi khuyến mãi?"*.
+Tư duy nền tảng:
+- Causal Inference trả lời câu hỏi nguyên nhân - kết quả, đặc biệt là câu hỏi phản thực tế: “Nếu KH A không nhận khuyến mãi thì sao?”.
+- Uplift Modeling ứng dụng Causal Inference để ước tính Hiệu ứng Can thiệp Cá nhân (ITE) – gọi là Uplift Score.
+- Dữ liệu đến từ các thí nghiệm A/B (Treatment vs Control) để học ước tính cho khách hàng mới.
 
-Uplift Modeling là một tập hợp các kỹ thuật ứng dụng Causal Inference để ước tính **Hiệu ứng Can thiệp Cá nhân (Individual Treatment Effect - ITE)**, hay chúng ta gọi là **Uplift Score**. Công thức toán học của nó là:
+Công thức cốt lõi (ITE):
 
 `ITEᵢ = E[Yᵢ(1) - Yᵢ(0) | Xᵢ]`
 
 Trong đó:
-* `i` là một cá nhân (khách hàng).
-* `Yᵢ(1)` là kết quả tiềm năng (potential outcome) nếu cá nhân `i` nhận can thiệp (Treated).
-* `Yᵢ(0)` là kết quả tiềm năng nếu cá nhân `i` không nhận can thiệp (Control).
-* `E[...]` là kỳ vọng (giá trị trung bình).
-* `Xᵢ` là vector các đặc điểm (features) của cá nhân `i`.
+* `i`: cá nhân (khách hàng)
+* `Yᵢ(1)`: kết quả nếu nhận can thiệp (Treated)
+* `Yᵢ(0)`: kết quả nếu không nhận can thiệp (Control)
+* `E[...]`: kỳ vọng (trung bình)
+* `Xᵢ`: vector đặc điểm (features)
 
-Vấn đề cơ bản của suy luận nhân quả là chúng ta không bao giờ có thể quan sát cả `Yᵢ(1)` và `Yᵢ(0)` cho cùng một cá nhân tại cùng một thời điểm. Đây là lúc các thuật toán Uplift Modeling phát huy tác dụng. Chúng sử dụng dữ liệu từ các thí nghiệm ngẫu nhiên (A/B tests) trong quá khứ, nơi có cả nhóm Treatment và Control, để học cách ước tính giá trị ITE này cho những khách hàng mới.
+Lưu ý thực tiễn:
+- Không thể quan sát đồng thời `Yᵢ(1)` và `Yᵢ(0)` với cùng một cá nhân.
+- Cần dữ liệu A/B đủ tốt và quy trình đánh giá đúng để mô hình hóa uplift đáng tin cậy.
 
 #### **2.2. Lựa chọn Thuật Toán: "Cuộc Đua" Của Các Meta-Learners**
 
 Một "Modernized Platform" phải có khả năng thử nghiệm và lựa chọn thuật toán tốt nhất một cách có hệ thống. Chúng tôi thiết kế một quy trình MLOps cho phép tổ chức "cuộc đua" giữa các mô hình SOTA (State-of-the-art) để chọn ra nhà vô địch cho từng bài toán cụ thể.
 
-* **Baseline (Đã implement): `UpliftRandomForestClassifier` (từ thư viện `causalml`)**
-    * **Cơ chế hoạt động:** Đây là một biến thể của Random Forest. Thay vì chia cây để tối đa hóa độ tinh khiết (Gini/Entropy) của nhãn kết quả, nó chia cây để tối đa hóa **sự khác biệt trong phân phối kết quả** giữa nhóm Treatment và Control trong cùng một lá.
-    * **Ưu điểm:** Tương đối nhanh, dễ diễn giải (feature importance), và là một baseline mạnh mẽ. Mô hình `src/uplift_model.pkl` hiện tại của chúng ta được huấn luyện bằng thuật toán này.
+| **Thuật Toán**                | **Ưu Điểm**                                                                 | **Nhược Điểm**                                                                 | **Chiến Lược Sử Dụng Tại VPBank** |
+|-------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------|
+| **UpliftRandomForestClassifier** | - Nhanh, dễ triển khai.                                                    | - Hiệu quả có thể thấp hơn các thuật toán hiện đại hơn.                         | Baseline Model: dùng trong GĐ1 để chứng minh giá trị nhanh; dễ diễn giải để thuyết phục stakeholder. |
+|                               | - Dễ diễn giải (feature importance).                                       |                                                                                |                                    |
+| **CatBoostUpliftClassifier**   | - Xử lý tốt các biến phân loại (categorical).                              | - Cần nhiều tài nguyên tính toán hơn.                                          | Dữ liệu đa dạng: ưu tiên chiến dịch có nhiều feature danh mục/địa lý/sản phẩm (Tín chấp, CASA). |
+|                               | - Không cần encoding phức tạp, tránh curse of dimensionality.              |                                                                                |                                    |
+| **DR-Learner**                | - Bền vững kép (doubly robust), ít bị sai lệch ngay cả khi dữ liệu không hoàn hảo. | - Phức tạp hơn, cần huấn luyện nhiều mô hình phụ trợ.                          | Tiêu chuẩn vàng: model tham chiếu chính để benchmark; phù hợp khi nghi ngờ chất lượng A/B test. |
+|                               | - Hiệu quả cao trong điều kiện dữ liệu thực tế.                            |                                                                                |                                    |
+| **CausalForest**              | - Phát hiện tốt các hiệu ứng không đồng nhất (heterogeneous effects).      | - Tốn thời gian huấn luyện hơn so với các thuật toán khác.                     | Khám phá phân khúc niche: tìm “túi” KH nhỏ phản ứng rất mạnh; dùng cho phân tích sâu và gợi ý segmentation. |
+|                               | - Cải tiến toán học đảm bảo ước tính không chệch (unbiased).               |                                                                                |                                    |
+| Khi nào chọn?                 | Phụ thuộc bối cảnh chiến dịch & dữ liệu                                    | Không có one-size-fits-all; cần thử nghiệm so sánh                             | MVP nhanh: UpliftRF; Dữ liệu nhiều categorical: CatBoostUplift; A/B nhiễu: DR-Learner; Phân khúc niche: CausalForest |
 
-* **Ứng viên 1 (Mạnh về Biến Phân Loại): `CatBoostUpliftClassifier`**
-    * **Cơ chế hoạt động:** CatBoost sử dụng một mục tiêu tối ưu hóa (objective function) được thiết kế đặc biệt cho bài toán Uplift. Nó có khả năng xử lý các biến categorical có số lượng mức (cardinality) lớn một cách tự nhiên mà không cần các bước pre-processing phức tạp như One-Hot Encoding, giúp tránh "lời nguyền số chiều" (curse of dimensionality).
-    * **Tại sao quan trọng với Banking:** Dữ liệu ngân hàng chứa rất nhiều biến categorical quan trọng (Tỉnh/Thành, Chi nhánh, Loại sản phẩm, Kênh giao dịch...). CatBoost có thể khai thác thông tin từ các biến này hiệu quả hơn.
-
-* **Ứng viên 2 (Mạnh về Độ Bền): `DR-Learner` (Doubly Robust Learner từ thư viện `EconML` của Microsoft)**
-    * **Cơ chế hoạt động:** Đây là một meta-learner "hai giai đoạn". Giai đoạn đầu, nó huấn luyện hai mô hình: một mô hình dự đoán kết quả `E[Y|X]` và một mô hình dự đoán xác suất nhận can thiệp `P(T=1|X)` (propensity score). Giai đoạn hai, nó sử dụng phần dư (residuals) từ hai mô hình này để ước tính ITE.
-    * **Ưu điểm "Doubly Robust":** Nó được gọi là "bền vững kép" vì ước tính ITE sẽ vẫn chính xác nếu **chỉ một trong hai** mô hình ở giai đoạn đầu là đúng. Điều này làm cho nó cực kỳ mạnh mẽ và ít bị sai lệch (bias) trong điều kiện dữ liệu thực tế không hoàn hảo.
-
-* **Ứng viên 3 (Mạnh về Tương Tác): `CausalForest` (từ thư viện `GRF` hoặc `EconML`)**
-    * **Cơ chế hoạt động:** Tương tự Uplift Random Forest, nhưng có những cải tiến toán học quan trọng (như "honest estimation") để đảm bảo các ước tính ITE là không chệch (unbiased).
-    * **Ưu điểm:** Rất mạnh trong việc phát hiện các **hiệu ứng không đồng nhất (heterogeneous effects)**, tức là tìm ra các quy tắc tương tác phức tạp. Ví dụ: "Khuyến mãi này chỉ thực sự hiệu quả với nhóm khách hàng trẻ tuổi *VÀ* có thu nhập cao *VÀ* thường xuyên giao dịch online".
+Bảng trên tóm tắt các ưu và nhược điểm của từng thuật toán, giúp dễ dàng so sánh và lựa chọn thuật toán phù hợp với bài toán cụ thể.
 
 ---
 #### **2.3. Thước Đo Thành Công: Từ Qini Curve đến Profit@K (VND)**
@@ -136,7 +174,9 @@ Một "Modernized Platform" phải có khả năng thử nghiệm và lựa ch�
         1.  Sắp xếp tất cả khách hàng trong tập kiểm thử (test set) theo thứ tự giảm dần của `Uplift Score` do mô hình dự đoán.
         2.  Đi từ trái qua phải, tại mỗi điểm (tương ứng với một tỷ lệ dân số được nhắm mục tiêu), chúng ta tính toán **lợi ích gia tăng (incremental gain)**. Lợi ích này được tính bằng: `(Số chuyển đổi trong nhóm Treatment) - (Số chuyển đổi trong nhóm Control * Tỷ lệ kích thước T/C)`.
         3.  Đường cong Qini được vẽ bằng cách tích lũy lợi ích gia tăng này.
-    * **Cách diễn giải:** Đường cong Qini càng cong và càng xa đường chéo (đại diện cho việc nhắm mục tiêu ngẫu nhiên), mô hình càng hiệu quả trong việc tìm ra sớm những khách hàng "Persuadables". Diện tích giữa đường cong Qini và đường chéo (gọi là AUUC) là một chỉ số duy nhất để so sánh hiệu năng tổng thể giữa các mô hình. Biểu đồ `docs/qini_curve.png` trong repo của chúng ta chính là minh chứng trực quan cho điều này.
+    * **Cách diễn giải:** Đường cong Qini càng cong và càng xa đường chéo (đại diện cho việc nhắm mục tiêu ngẫu nhiên), mô hình càng hiệu quả trong việc tìm ra sớm những khách hàng "Persuadables". Diện tích giữa đường cong Qini và đường chéo (gọi là AUUC) là một chỉ số duy nhất để so sánh hiệu năng tổng thể giữa các mô hình.
+
+    ![Qini Curve minh họa (AUUC)](images/qini_curve.svg)
 
 * **Profit@K (VND) - Thước Đo Kinh Doanh Tối Thượng:**
     * **Vấn đề của Qini/AUUC:** Chúng vẫn là những thước đo tương đối, chưa phản ánh trực tiếp lợi nhuận bằng tiền.
@@ -145,6 +185,8 @@ Một "Modernized Platform" phải có khả năng thử nghiệm và lựa ch�
         `Profit@K = Σᵢ(Revenue_per_conversion * Yᵢ | Tᵢ=1) - Σᵢ(Cost_per_treatment | Tᵢ=1)`
         Trong đó `i` là tập hợp các khách hàng thuộc top K% có điểm Uplift cao nhất.
     * **Ứng dụng:** Trong quy trình MLOps, mô hình chiến thắng không phải là mô hình có AUUC cao nhất, mà là mô hình có **Profit@K** (với K được quyết định bởi nghiệp vụ, ví dụ K=30%) cao nhất trên tập validation.
+
+    ![Profit@K minh họa (K=30%)](images/profit_at_k.svg)
 
 #### **2.4. Triển khai Huấn luyện trên SageMaker**
 
@@ -197,19 +239,22 @@ Bốn triết lý chính đã định hình các lựa chọn công nghệ của
 
 #### **3.2. Sơ Đồ Kiến Trúc Tổng Thể**
 
-*(Đây là nơi để bạn chèn file ảnh `docs/architecture.png` đã được Cloud Engineer hoàn thiện)*
+Hình dưới đây minh họa kiến trúc tổng thể của hệ thống Uplift Engine trên AWS, bao gồm các luồng Realtime và Offline/MLOps cùng các thành phần chính như API Gateway, Lambda (Decisioning + Guardrails + Optimizer), SageMaker Feature Store (Online/Offline), Step Functions, Training Jobs, DynamoDB và Kinesis.
 
-![System Architecture Diagram](architecture.png)
+![Sơ đồ kiến trúc hệ thống (AWS)](images/architecture.svg)
 
 Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Luồng Dữ liệu (Data Flow), Luồng Huấn luyện (MLOps Pipeline), Luồng Dự đoán (Real-time Inference), và Luồng Phân tích (Analytics), tất cả đều được tích hợp một cách liền mạch.
 
 #### **3.3. Phân Tích Sâu Các Thành Phần Dịch Vụ AWS**
 
 * **SageMaker Feature Store:**
-    * **Vấn đề giải quyết:** Training-serving skew là hiện tượng các feature được tính toán trong lúc huấn luyện (batch) khác biệt so với các feature được cung cấp trong lúc dự đoán (real-time), dẫn đến hiệu quả mô hình sụt giảm nghiêm trọng.
-    * **Cấu trúc & Implementation:** Chúng ta sẽ định nghĩa một `FeatureGroup` bằng SageMaker Python SDK. `FeatureGroup` này sẽ bao gồm các `FeatureDefinition` (tên, kiểu dữ liệu) khớp với dữ liệu khách hàng. Một `EventTime` feature là bắt buộc để cho phép các truy vấn "du hành thời gian" (time-travel queries), đảm bảo tính nhất quán tại một thời điểm (point-in-time correctness) khi tạo tập dữ liệu huấn luyện.
-        * **Offline Store:** Dữ liệu được lưu trữ trên S3 ở định dạng Parquet tối ưu hóa. Nó được dùng cho việc huấn luyện, phân tích thăm dò, và backfilling.
-        * **Online Store:** Là một kho chứa key-value có độ trễ thấp (được back-end bởi DynamoDB), cung cấp feature vector gần như tức thì (<10ms) cho luồng inference.
+    * **Tóm tắt nhanh:**
+        - Mục tiêu: loại bỏ training-serving skew, đảm bảo tính nhất quán feature giữa offline và online.
+        - Hai kho: Offline (S3/Parquet) cho training & phân tích, Online (DynamoDB) cho realtime (<10ms).
+        - Điểm mấu chốt: EventTime + point-in-time correctness cho truy vấn “du hành thời gian”.
+    * **Implementation:**
+        - Khai báo `FeatureGroup` với `FeatureDefinition`, `record_identifier`, `event_time`.
+        - Bật `enable_online_store` và bảo mật (KMS) cho online store.
   # Pseudo-code khởi tạo Feature Group
     from sagemaker.feature_store.feature_group import FeatureGroup
 
@@ -234,6 +279,11 @@ Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Lu�
         enable_online_store=True,
         online_store_config={'SecurityConfig': {'KmsKeyId': kms_key_id}} # Thêm mã hóa cho online store
     )
+
+> Lời khuyên triển khai:
+> - Bắt buộc kiểm tra point-in-time correctness trong pipeline tạo dataset training.
+> - Quản trị schema: dùng schema registry hoặc pydantic/dataclass để định nghĩa & validate schema, đồng bộ Offline/Online Store, tránh lệch cột.
+> - Kiểm soát chi phí: thiết lập S3 Lifecycle Policy (ví dụ >90 ngày chuyển sang Glacier) cho Offline Store để tối ưu hóa chi phí.
 
 * **AWS Lambda (w/ Provisioned Concurrency):**
     * **Vấn đề Cold Start:** Một hàm Lambda thông thường có thể mất từ vài trăm mili-giây đến vài giây để khởi động trong lần gọi đầu tiên sau một thời gian không hoạt động. Trong một ứng dụng tài chính như VPBank NEO, độ trễ này là không chấp nhận được.
@@ -322,11 +372,20 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
     * **Trigger:** Chạy sau khi nhận được tín hiệu "Approve".
     * **Action:** Step Functions gọi các API `CreateEndpointConfig` và `CreateEndpoint` (hoặc `UpdateEndpoint`) của SageMaker để triển khai phiên bản model mới ra môi trường production, có thể theo pattern Blue/Green deployment để đảm bảo an toàn và không có downtime.
 
+> Lời khuyên triển khai (MLOps):
+> - Thiết kế từng state idempotent, cấu hình retry policy và DLQ; thêm SNS alert cho các trạng thái lỗi quan trọng.
+> - Lưu metadata job (S3 path, commit hash, metrics) để tái lập mô hình (reproducibility) và audit lineage.
+> - Dùng Parallel state với giới hạn concurrency theo ngân sách; gom log chuẩn (structured logging) để dễ truy vết.
+
 ---
 
 #### **4.2. Luồng Real-time: Phản Hồi Dưới 100ms**
 
-Đây là luồng hoạt động khi một khách hàng tương tác với ứng dụng VPBank NEO. Toàn bộ chuỗi sự kiện được thiết kế để hoàn thành trong dưới 100 mili-giây, đảm bảo trải nghiệm người dùng mượt mà và không bị gián đoạn.
+Đây là luồng hoạt động khi một khách hàng tương tác với ứng dụng VPBank NEO. Mục tiêu hiệu năng:
+- End-to-end latency: < 100ms (P95-P99 ổn định với Provisioned Concurrency).
+- Feature fetch từ Online Store: ~5–10ms.
+- Model inference: ~20–40ms (tùy instance/ensemble).
+- Phần còn lại (API Gateway, Lambda logic, network): ~30–40ms.
 
 **Chi tiết từng bước kỹ thuật:**
 
@@ -395,6 +454,30 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
       ```
     * **Logging:** Đồng thời, Lambda sẽ ghi lại một bản ghi chi tiết (exposure log) về quyết định này vào **Amazon Kinesis Firehose** để phục vụ cho việc phân tích và cập nhật mô hình sau này.
 
+> Lời khuyên triển khai:
+> - Bật Provisioned Concurrency theo khung giờ cao điểm; dùng Auto Scaling theo RPS.
+> - Warm-up synthetic requests sau mỗi deploy để ổn định P99.
+> - Giới hạn kích thước payload và dùng gzip để giảm độ trễ mạng.
+
+##### **4.2.1. Giám Sát & Cảnh Báo (Monitoring & Alerting)**
+
+Một hệ thống real-time chỉ tốt khi được giám sát chặt chẽ. Chúng tôi đề xuất:
+
+- CloudWatch Dashboards:
+    - P99/P95 Latency của API Gateway.
+    - Invocation Count, Error Rate, Throttles và Duration của Lambda.
+    - ModelLatency/OverheadLatency của SageMaker Endpoint.
+
+- CloudWatch Alarms (SNS thông báo email/SMS/Teams webhook):
+    - Lambda Error Rate > 1% trong 5 phút (2/3 evaluation periods) → cảnh báo.
+    - Endpoint Latency (P95) > 80ms trong 10 phút → cảnh báo.
+    - 5XX Error của API Gateway tăng đột biến (> 0.5% trong 5 phút) → cảnh báo.
+
+- SageMaker Model Monitor:
+    - Data Quality: phát hiện Data Drift trên phân phối input features (theo lịch hàng ngày/giờ).
+    - Model Quality: theo dõi metric suy luận so với ground truth trễ (delayed labels) nếu khả dụng.
+    - Tự động kích hoạt pipeline huấn luyện lại (Step Functions) khi vượt ngưỡng drift đã định.
+
 ---
 ### **Chương 5: Hiện Thực Hóa Các Module Nâng Cao**
 
@@ -462,23 +545,52 @@ Một nền tảng hiện đại không chỉ có "bộ não" AI mạnh mẽ mà
         * Hàm Lambda inference chỉ trả về `uplift_score`.
         * Một quy trình batch (chạy trên **AWS Batch** hoặc Fargate) sẽ được kích hoạt, đọc danh sách khách hàng tiềm năng, giải bài toán Knapsack, và lưu kết quả vào một bảng DynamoDB (Policy Store). Các hệ thống marketing sau đó sẽ đọc quyết định từ bảng này.
 
+> Lời khuyên triển khai:
+> - Với quy mô lớn, cân nhắc heuristic/greedy + re-optimization rolling window để giảm thời gian giải IP.
+> - Gắn constraint thực tế (tần suất liên lạc, giới hạn offer theo phân khúc) trực tiếp vào mô hình tối ưu.
+> - Viết unit test cho edge-cases ngân sách rất nhỏ/rất lớn và dữ liệu dày đặc.
+
+##### **Ví dụ minh họa:**
+Giả sử ngân hàng có ngân sách 1 tỷ VND và danh sách 5 khách hàng tiềm năng với các thông tin sau:
+
+| **Khách hàng** | **Uplift Profit (VND)** | **Chi phí khuyến mãi (VND)** |
+|-----------------|-------------------------|------------------------------|
+| A               | 300,000                 | 200,000                      |
+| B               | 500,000                 | 400,000                      |
+| C               | 200,000                 | 100,000                      |
+| D               | 400,000                 | 300,000                      |
+| E               | 100,000                 | 50,000                       |
+
+Bài toán: Chọn tập hợp khách hàng để tối đa hóa lợi nhuận, với tổng chi phí không vượt quá 1 tỷ VND.
+
+**Giải pháp:**
+- Sử dụng thuật toán Knapsack, chúng ta chọn các khách hàng B, D, và E.
+- **Tổng chi phí:** 400,000 + 300,000 + 50,000 = 750,000 VND.
+- **Tổng lợi nhuận:** 500,000 + 400,000 + 100,000 = 1 triệu VND.
+
+Nếu chọn tham lam (greedy) theo lợi nhuận cao nhất trước, có thể chọn khách hàng B và A, nhưng tổng chi phí sẽ vượt ngân sách (600,000 + 200,000 = 1.2 tỷ VND). Điều này cho thấy sự cần thiết của thuật toán tối ưu hóa.
+
 #### **5.2. Bộ Lọc An Toàn "Do-No-Harm" (Guardrails)**
 
-* **Vấn đề:** Rủi ro của việc ước tính sai `uplift_score` là rất lớn, đặc biệt là với nhóm "Sleeping Dogs". Chúng ta cần một cơ chế để chỉ hành động khi thực sự tự tin.
-* **Triển khai Kỹ thuật:** Logic này được thực thi ở ngay đầu hàm Lambda `app.py`, trước khi gọi đến các module tối ưu hóa.
+Mục tiêu:
+- Giảm rủi ro target nhầm (đặc biệt nhóm Sleeping Dogs) bằng nguyên tắc “chỉ hành động khi chắc chắn đủ”.
 
-    1.  **Hard Rules (Luật Cứng):**
-        * **Cơ chế:** Chúng tôi sử dụng một bảng **Amazon DynamoDB** để lưu trữ danh sách các khách hàng không được liên lạc (Do-Not-Contact list - DNC). Bảng này có `customerId` là khóa chính.
-        * **Implementation:** Hàm Lambda sẽ thực hiện một lệnh `GetItem` đến bảng DNC. Do DynamoDB có độ trễ mili-giây đơn, thao tác này gần như không ảnh hưởng đến tổng thời gian phản hồi. Nếu khách hàng tồn tại trong bảng, luồng sẽ kết thúc ngay lập tức và trả về `{"action": "DO_NOT_TARGET", "reason": "DNC_LIST"}`.
+Vị trí thực thi:
+- Đặt đầu hàm Lambda `app.py`, trước Optimizer/Bandit.
 
-    2.  **Soft Rules (Luật Mềm):**
-        * **Cơ chế:** Dựa trên khoảng tin cậy của ước tính uplift. Một ước tính điểm (point estimate) như `uplift_score = 0.01` là không đủ tin cậy. Chúng ta cần biết mô hình "chắc chắn" đến mức nào.
-        * **Implementation:**
-            a.  Trong quá trình huấn luyện mô hình (`train.py`), ngoài việc lưu `uplift_score`, chúng ta sử dụng các kỹ thuật như bootstrap hoặc jackknife để tính toán và lưu lại cả độ lệch chuẩn của ước tính (`uplift_std_error`) cho mỗi dự đoán.
-            b.  SageMaker Endpoint sẽ trả về cả hai giá trị này.
-            c.  Trong hàm Lambda, chúng ta tính toán giới hạn dưới của khoảng tin cậy 95%:
-                `lower_bound = uplift_score - 1.96 * uplift_std_error`
-            d.  Chỉ khi `lower_bound > 0`, chúng ta mới xem xét việc nhắm mục tiêu. Điều này đảm bảo rằng chúng ta có ít nhất 97.5% tin cậy rằng tác động của khuyến mãi là tích cực.
+Hai lớp kiểm soát:
+1) Hard Rules (Luật cứng)
+   - Bảng DynamoDB: Do-Not-Contact (DNC) với khóa `customerId`.
+   - `GetItem` siêu nhanh (ms). Nếu tồn tại → trả về `{ "action": "DO_NOT_TARGET", "reason": "DNC_LIST" }` và dừng.
+2) Soft Rules (Luật mềm)
+   - Dựa trên độ tin cậy: dùng `uplift_std_error` để tạo khoảng tin cậy 95%.
+   - Tính `lower_bound = uplift_score - 1.96 * uplift_std_error`.
+   - Điều kiện cho phép: `lower_bound > 0` → mới tiếp tục target.
+
+Lời khuyên triển khai:
+- Ưu tiên cache DNC (TTL ngắn) để giảm chi phí đọc DynamoDB ở traffic cao.
+- Log lý do chặn (hard/soft) vào Kinesis để dễ phân tích hậu kiểm và tinh chỉnh ngưỡng.
+- Với mô hình ensemble, cân nhắc dùng lower bound theo phân phối dự đoán (không chỉ Gaussian approx).
 
 ---
 
@@ -515,6 +627,11 @@ Một nền tảng hiện đại không chỉ có "bộ não" AI mạnh mẽ mà
         * Khi khách hàng thực hiện hành vi (ví dụ: click vào banner), ứng dụng client sẽ gửi một sự kiện "outcome log" vào Kinesis.
         * Một hàm **Lambda xử lý batch** (được trigger bởi Kinesis Firehose) sẽ chạy định kỳ (ví dụ: mỗi 5 phút), tổng hợp các exposure và outcome, sau đó thực hiện các lệnh `UpdateItem` với `Atomic Counters` để cập nhật các giá trị `alpha` và `beta` trong bảng DynamoDB. Điều này đảm bảo hệ thống liên tục học hỏi và thông minh hơn.
 
+> Lời khuyên triển khai:
+> - Khởi tạo alpha/beta bằng prior hợp lý (ví dụ Beta(1,1) hay ưu tiên creative mặc định Beta(2,1)).
+> - Áp dụng per-context arms (ví dụ theo sản phẩm/segment) để tránh “nhiễu” giữa các bối cảnh khác nhau.
+> - Tách exposure vs. outcome stream để dễ kiểm soát độ trễ và xử lý sự kiện đến muộn.
+
 ---
 
 ### **Chương 6: Lộ Trình Triển Khai & Tầm Nhìn Tương Lai**
@@ -531,6 +648,7 @@ Chúng tôi đề xuất một lộ trình triển khai cẩn trọng và có đ
         1.  Triển khai kiến trúc MVP của "Uplift Engine" trên môi trường production.
         2.  Chạy một chiến dịch A/B testing quy mô lớn: 50% lưu lượng khách hàng của squad sẽ đi qua chính sách hiện tại, 40% sẽ đi qua chính sách tối ưu của "Uplift Engine", và 10% sẽ là nhóm control (không nhận khuyến mãi).
         3.  **KPI thành công:** Chứng minh được **Net Profit Uplift (VND)** của nhóm "Uplift Engine" cao hơn đáng kể so với nhóm chính sách hiện tại.
+        4.  **Triển khai module:** Sử dụng **Knapsack Optimizer** để tối ưu hóa ngân sách trong chiến dịch thí điểm, đảm bảo chi phí được phân bổ hiệu quả nhất.
 
 * **Giai đoạn 2 (Quý 2 & 3): Mở rộng thành Nền tảng Dịch vụ (Scale as a Platform)**
     * **Phạm vi:** Sau thành công của giai đoạn 1, chúng ta sẽ mở rộng "Uplift Engine" thành một nền tảng dịch vụ nội bộ (Internal Platform-as-a-Service).
@@ -538,30 +656,249 @@ Chúng tôi đề xuất một lộ trình triển khai cẩn trọng và có đ
         1.  Phát triển một bộ SDK và tài liệu hướng dẫn để các Agile squad khác (Tín chấp, Thế chấp, CASA...) có thể tự tích hợp với API của "Uplift Engine".
         2.  Hoàn thiện và tự động hóa hoàn toàn pipeline MLOps với Step Functions.
         3.  Xây dựng một dashboard QuickSight trung tâm cho phép các Product Owner theo dõi hiệu quả chiến dịch của họ theo thời gian thực.
+        4.  **Triển khai module:** Tích hợp **Guardrails** để đảm bảo các chiến dịch mở rộng không gây hại cho thương hiệu hoặc khách hàng.
 
 * **Giai đoạn 3 (Quý 4 trở đi): Tự động hóa và Tối ưu hóa Liên tục (Full Automation & Continuous Optimization)**
     * **Phạm vi:** Tích hợp sâu hơn vào hệ sinh thái công nghệ của VPBank.
     * **Mục tiêu:**
         1.  Tích hợp "Uplift Engine" với các hệ thống CRM và Marketing Automation, cho phép các quyết định được thực thi tự động mà không cần can thiệp thủ công.
-        2.  Triển khai đầy đủ module Contextual Bandits để hệ thống có khả năng tự tối ưu hóa creative/offer một cách liên tục.
+        2.  Triển khai đầy đủ module **Contextual Bandits** để hệ thống có khả năng tự tối ưu hóa creative/offer một cách liên tục.
         3.  Nghiên cứu và áp dụng các kỹ thuật Causal AI tiên tiến hơn để giải quyết các bài toán phức tạp hơn.
-
-#### **6.2. Mở Rộng Ngoài Khuyến Mãi: Tầm Nhìn Về một "Decisioning Engine" Trung Tâm**
-
-Vẻ đẹp thực sự của nền tảng "Uplift Engine" nằm ở chỗ lõi Causal AI và kiến trúc MLOps của nó có thể được tái sử dụng để giải quyết hàng loạt các bài toán kinh doanh khác, biến nó từ một hệ thống tối ưu khuyến mãi thành một **"Cỗ máy Ra Quyết định" (Decisioning Engine)** trung tâm cho toàn ngân hàng.
-
-* **Next Best Action (Hành động Tốt nhất Tiếp theo):**
-    * **Câu hỏi kinh doanh:** Với khách hàng A, hành động nào (gọi điện tư vấn, gửi email, push notification, hay không làm gì cả) sẽ mang lại Customer Lifetime Value (CLV) cao nhất?
-    * **Áp dụng:** Chúng ta có thể huấn luyện một mô hình Uplift để ước tính tác động của từng "hành động" lên CLV và chọn ra hành động có uplift cao nhất.
-
-* **Dynamic Pricing (Định giá Động):**
-    * **Câu hỏi kinh doanh:** Mức lãi suất/phí nào là tối ưu cho khách hàng B để tối đa hóa cả khả năng chấp nhận và lợi nhuận cho ngân hàng?
-    * **Áp dụng:** Thay vì một "treatment" nhị phân (có/không), chúng ta có thể có nhiều mức "treatment" (các mức lãi suất khác nhau) và sử dụng Causal AI để tìm ra mức tối ưu cho từng phân khúc.
-
-* **Proactive Retention (Giữ chân Khách hàng Chủ động):**
-    * **Câu hỏi kinh doanh:** Với khách hàng C có dấu hiệu sắp churn, can thiệp nào (tặng quà, gọi điện chăm sóc, miễn giảm phí) sẽ hiệu quả nhất trong việc giữ chân họ?
-    * **Áp dụng:** Tương tự như bài toán khuyến mãi, chúng ta có thể ước tính uplift của từng "can thiệp giữ chân" lên xác suất "không churn" và chọn ra can thiệp có ROI cao nhất.
-
-Bằng cách xây dựng "Uplift Engine", chúng ta không chỉ giải quyết một vấn đề, mà đang kiến tạo một năng lực cạnh tranh cốt lõi cho VPBank trong kỷ nguyên số.
+        4.  **Triển khai module:** Kết hợp tất cả các module (Knapsack Optimizer, Guardrails, Contextual Bandits) để tạo thành một hệ thống ra quyết định tự động và toàn diện.
 
 ---
+
+#### **6.2. Mở Rộng Ngoài Khuyến Mãi: Next Best Action, Dynamic Pricing**
+
+Sau khi chứng minh giá trị ở miền khuyến mãi, cùng các mô-đun tối ưu và guardrails đã ổn định, nền tảng có thể mở rộng theo hai hướng chiến lược:
+
+- Next Best Action (NBA): Tổng quát hóa uplift từ một offer sang nhiều hành động có thể (giữ nguyên khung Causal AI + Optimizer). Mỗi action có uplift_score và chi phí/giới hạn riêng; Optimizer chọn tổ hợp action tối ưu theo mục tiêu kinh doanh (ví dụ gia tăng CLV hoặc giảm churn).
+- Dynamic Pricing: Ước tính uplift theo mức giá (price-sensitive uplift). Với các sản phẩm phù hợp (bảo hiểm, phí dịch vụ), mô hình ước tính phân phối hiệu ứng theo price ladder, cho phép chọn mức giá vừa tối ưu lợi nhuận vừa giảm phản ứng tiêu cực.
+
+Điểm mấu chốt: giữ nguyên các nguyên tắc MLOps, Feature Store và giám sát drift; bổ sung guardrails chuyên biệt (giới hạn tần suất/giá tối thiểu/trần chiết khấu) để đảm bảo tuân thủ và trải nghiệm khách hàng.
+
+---
+
+#### **6.3. Tầm Nhìn Về Quản Trị Rủi Ro & Mô Hình Giải Thích Được (Explainable AI)**
+
+Để một hệ thống AI ra quyết định được tin tưởng và áp dụng rộng rãi trong ngành ngân hàng, nó phải minh bạch và tuân thủ các quy định.
+
+- Model Explainability (XAI): Trong tương lai, chúng tôi sẽ tích hợp các kỹ thuật XAI như SHAP (SHapley Additive exPlanations) vào pipeline MLOps. Với mỗi quyết định, hệ thống không chỉ trả về `uplift_score`, mà còn có thể giải thích: “Đề xuất khuyến mãi này vì các đặc điểm A, B, C…”. Điều này rất quan trọng cho kiểm toán (audit) và xử lý khiếu nại.
+
+- Model Risk Management (MRM): Nền tảng sẽ tích hợp với các quy trình quản trị rủi ro mô hình của VPBank. SageMaker Model Cards được dùng để tự động tạo tài liệu cho mỗi phiên bản mô hình, ghi lại mục đích, dữ liệu huấn luyện, kết quả đánh giá và các giới hạn đạo đức/sử dụng. Kết hợp phê duyệt con người (Human-in-the-loop) trước khi triển khai, cùng kiểm tra định kỳ (periodic validation) và theo dõi drift giúp đảm bảo tuân thủ xuyên suốt vòng đời mô hình.
+
+- Governance & Compliance: Thiết lập SLA/SLO cho độ trễ, độ sẵn sàng; kiểm soát truy cập qua IAM least-privilege; mã hóa end-to-end (KMS); log bất biến (immutability) cho audit trail; và quy trình rollback chuẩn hóa. Đối với dữ liệu nhạy cảm, áp dụng differential privacy hoặc k-anonymity ở các bước phân tích khi phù hợp.
+
+Các thực hành trên củng cố niềm tin, giảm rủi ro hoạt động và pháp lý, và tạo nền tảng để mở rộng Uplift Engine trên quy mô tổ chức.
+
+
+
+
+### **Phụ lục A: Metric chuẩn & IaC mẫu (Monitoring & Alerting)**
+
+#### A.1. Metric chuẩn theo dịch vụ
+
+- API Gateway (namespace: `AWS/ApiGateway`)
+    - Metrics: `Latency` (Average/P95), `5XXError` (Sum), `4XXError` (Sum), `Count` (Sum).
+    - Dimensions phổ biến: `ApiName`/`Stage`/`Resource`/`Method` (REST); hoặc `ApiId`/`Stage` (HTTP API). 
+
+- AWS Lambda (namespace: `AWS/Lambda`)
+    - Metrics: `Invocations` (Sum), `Errors` (Sum), `Throttles` (Sum), `Duration` (Average/p95), `ConcurrentExecutions`, `ProvisionedConcurrencyUtilization`.
+    - Dimensions: `FunctionName`/`Resource`.
+
+- SageMaker Endpoint (namespace: `AWS/SageMaker/Endpoints`)
+    - Metrics: `ModelLatency` (p95), `OverheadLatency` (Average/p95), `Invocation4XXErrors` (Sum), `Invocation5XXErrors` (Sum).
+    - Dimensions: `EndpointName`/`VariantName`.
+
+Lưu ý: Chuẩn hóa P95/P99 theo SLO nội bộ; đặt ngưỡng cảnh báo khác nhau cho giờ cao điểm/ngoài giờ.
+
+#### A.2. Terraform mẫu (CloudWatch Alarm + SNS)
+
+SNS Topic & Subscription (email):
+
+```hcl
+resource "aws_sns_topic" "alerts" {
+    name = "uplift-engine-alerts"
+}
+
+resource "aws_sns_topic_subscription" "alerts_email" {
+    topic_arn = aws_sns_topic.alerts.arn
+    protocol  = "email"
+    endpoint  = var.alert_email # ví dụ: ops@vpbank.vn
+}
+```
+
+Lambda Error Rate > 1% (metric math, 5 phút):
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
+    alarm_name          = "lambda-${var.lambda_name}-error-rate-gt-1pct"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 0.01
+    evaluation_periods  = 3
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Lambda error rate > 1% over 5m"
+
+    metric_query {
+        id          = "errors"
+        return_data = false
+        metric {
+            metric_name = "Errors"
+            namespace   = "AWS/Lambda"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { FunctionName = var.lambda_name }
+        }
+    }
+
+    metric_query {
+        id          = "invocations"
+        return_data = false
+        metric {
+            metric_name = "Invocations"
+            namespace   = "AWS/Lambda"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { FunctionName = var.lambda_name }
+        }
+    }
+
+    metric_query {
+        id          = "err_rate"
+        expression  = "errors / MAX([invocations,1])"
+        label       = "Lambda Error Rate"
+        return_data = true
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+```
+
+SageMaker Endpoint P95 ModelLatency > 80ms (10 phút):
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "sagemaker_latency_p95" {
+    alarm_name          = "sagemaker-${var.endpoint_name}-p95-latency-gt-80ms"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 80
+    evaluation_periods  = 2
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Endpoint ModelLatency p95 > 80ms over 10m"
+
+    metric_name         = "ModelLatency"
+    namespace           = "AWS/SageMaker/Endpoints"
+    period              = 300
+    extended_statistic  = "p95"
+    dimensions = {
+        EndpointName = var.endpoint_name
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+```
+
+API Gateway 5XX Error Rate > 0.5% (metric math):
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "apigw_5xx_rate" {
+    alarm_name          = "apigw-${var.api_id}-5xx-rate-gt-0_5pct"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 0.005
+    evaluation_periods  = 3
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "API Gateway 5XX rate > 0.5% over 5m"
+
+    metric_query {
+        id          = "fivexx"
+        return_data = false
+        metric {
+            metric_name = "5XXError"
+            namespace   = "AWS/ApiGateway"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { ApiId = var.api_id, Stage = var.stage }
+        }
+    }
+
+    metric_query {
+        id          = "count"
+        return_data = false
+        metric {
+            metric_name = "Count"
+            namespace   = "AWS/ApiGateway"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { ApiId = var.api_id, Stage = var.stage }
+        }
+    }
+
+    metric_query {
+        id          = "rate"
+        expression  = "fivexx / MAX([count,1])"
+        label       = "API 5XX Error Rate"
+        return_data = true
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+```
+
+#### A.3. CloudFormation mẫu (YAML)
+
+Lambda Error Rate (1%) bằng Metric Math:
+
+```yaml
+Resources:
+    AlertsTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            TopicName: uplift-engine-alerts
+
+    LambdaErrorRateAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: !Sub lambda-${LambdaName}-error-rate-gt-1pct
+            ComparisonOperator: GreaterThanThreshold
+            Threshold: 0.01
+            EvaluationPeriods: 3
+            DatapointsToAlarm: 2
+            TreatMissingData: notBreaching
+            Metrics:
+                - Id: errors
+                    MetricStat:
+                        Metric:
+                            Namespace: AWS/Lambda
+                            MetricName: Errors
+                            Dimensions:
+                                - Name: FunctionName
+                                    Value: !Ref LambdaName
+                        Period: 60
+                        Stat: Sum
+                - Id: invocations
+                    MetricStat:
+                        Metric:
+                            Namespace: AWS/Lambda
+                            MetricName: Invocations
+                            Dimensions:
+                                - Name: FunctionName
+                                    Value: !Ref LambdaName
+                        Period: 60
+                        Stat: Sum
+                - Id: erate
+                    Expression: errors / MAX([invocations,1])
+                    Label: Lambda Error Rate
+                    ReturnData: true
+            AlarmActions:
+                - !Ref AlertsTopic
+Parameters:
+    LambdaName:
+        Type: String
+```
+
+Gợi ý triển khai:
+- Đặt biến `var.stage`, `var.api_id`, `var.endpoint_name`, `var.lambda_name` qua Terraform variables/CloudFormation Parameters.
+- Tạo một Dashboard tổng hợp (API+Lambda+Endpoint) cho từng môi trường (dev/uat/prod) với tiền tố thống nhất.
+- Bật log retention (14–30 ngày) cho Log Group của Lambda/ApiGateway để giảm chi phí.

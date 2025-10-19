@@ -36,6 +36,17 @@ Q&A prep (short answers)
 - "How do you avoid upsetting customers?" — We add Do-No-Harm guardrails: DNC lists + CI-based filters.
 - "How long to deploy?" — With Feature Store + MLOps, a pilot can be deployed in weeks (data permitting).
 
+7) Uplift Engine 2.1 (Cloud Engineer + Team Lead) — 60s
+    - Slide title: "Uplift Engine 2.1 — production-readiness & cost/perf trade-offs"
+    - Bullet points on slide:
+       - "Provisioned Concurrency for Lambda inference — eliminates cold-starts, low-latency SLA"
+       - "Kinesis for near-real-time features; instant features computed in-app before API call"
+       - "Tiered batch: AWS Glue (default) + EMR Serverless for heavy Spark jobs"
+    - Speaker notes (what to say):
+       - Cloud Engineer: "We tuned the real-time path for SLA by using Provisioned Concurrency to remove cold starts; for near-real-time features we keep Kinesis, but for instant requirements we compute at the application layer before calling the API."
+       - Team Lead: "For batch workloads we use a tiered approach — Glue for daily jobs and EMR Serverless for heavy feature engineering. This keeps costs predictable while enabling high-performance processing when needed."
+    - Optional callouts: mention trade-offs — PC adds reserved cost; EMR Serverless costs when heavy jobs run but avoids OOM/timeouts on Glue.
+
 Contact
 - Team Lead: [name/email]
 - Cloud Engineer: [name/email]

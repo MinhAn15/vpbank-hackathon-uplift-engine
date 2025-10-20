@@ -114,13 +114,25 @@ Tổng kết lợi ích gia tăng (incremental):
 
 Liên hệ thực chiến: Uplift Model giúp “lọc” để ưu tiên nhóm Persuadables, tránh lãng phí vào Sure Things/Lost Causes và hạn chế rủi ro Sleeping Dogs (thông qua Guardrails ở Chương 5).
 
-Vấn đề là: các mô hình propensity truyền thống hoàn toàn mơ hồ trước sự phân biệt quan trọng này. Hãy cùng xem vì sao.
-
 #### **1.2. Tại Sao Các Mô Hình Propensity Truyền Thống Thất Bại?**
+
+Ở phần 1.1, chúng ta thấy chi phí chỉ thực sự sinh lời ở nhóm Persuadables, trong khi Sure Things âm thầm giảm đi lợi nhuận, Lost Causes gây lãng phí, và Sleeping Dogs thậm chí gây hại. Thế nhưng phần lớn công cụ hiện có lại không “nhìn thấy” sự khác biệt này. Chúng dự đoán “Ai sẽ chuyển đổi?” thay vì “Ai sẽ thay đổi hành vi nếu có can thiệp?”.
 
 Vấn đề cốt lõi:
 - Propensity Model dự đoán `P(Conversion)` → không phân biệt được giữa Persuadables và Sure Things.
 - Kết quả: nhắm mục tiêu cả những người sẽ mua dù không có khuyến mãi → lãng phí ngân sách, bào mòn lợi nhuận.
+
+Tầng sâu: vì sao “thêm một lớp phân loại” vẫn không giải được?
+- Mục tiêu đúng để ra quyết định là hiệu ứng can thiệp cá nhân: `U(X) = E[Y(1) − Y(0) | X]`. Trong khi đó mô hình propensity thường tối ưu một trong hai đại lượng khác:
+    1) Huấn luyện trên mẫu có can thiệp: học `P(Y=1 | X, T=1)` (xác suất chuyển đổi khi có tác nhân), hoặc
+    2) Huấn luyện trộn: học `P(Y=1 | X) = π(X) · P(Y(1)=1 | X) + (1−π(X)) · P(Y(0)=1 | X)`, với `π(X)=P(T=1|X)`.
+    Cả hai đều không trực tiếp cho ta `U(X)`.
+- Hai khách hàng có cùng xác suất chuyển đổi cao vẫn có uplift rất khác: A có `(Y(1)=1, Y(0)=0)` → `U(A)=1` (Persuadable); B có `(Y(1)=1, Y(0)=1)` → `U(B)=0` (Sure Thing). Một “lớp phân loại” gắn sau mô hình `P(Y=1|·)` không thể tách A và B nếu không có thông tin phản thực tế `Y(0)` của A (hoặc `Y(1)` của B).
+- Đây là vấn đề nhân quả căn bản (Fundamental Problem of Causal Inference): với mỗi cá nhân, ta chỉ quan sát được một trong hai kết quả `Y(1)` hoặc `Y(0)` (không bao giờ cả hai). Để ước tính `U(X)`, ta cần thí nghiệm ngẫu nhiên (A/B) hoặc giả định mạnh (ignorability + overlap), và mô hình hóa đồng thời hai nhánh `T=1` và `T=0` (ví dụ: T-/S-/X-/DR-Learner) hoặc dùng các mô hình uplift trực tiếp.
+- Thêm features hay đổi thuật toán không sửa được sai mục tiêu (target misalignment): bạn vẫn đang tối ưu hóa “khả năng chuyển đổi” thay vì “hiệu ứng của can thiệp”. Vì thế, việc “vá” bằng một tầng phân loại hậu kỳ không thể biến một mô hình tương quan thành một mô hình nhân quả.
+
+Lưu ý thuật ngữ:
+- Trong causal inference, “propensity score” là `P(T=1|X)` (xác suất được gán can thiệp). Trong thực hành marketing, “propensity model” thường ám chỉ `P(Y=1|X)` hoặc `P(Y=1|X,T=1)`. Tài liệu này dùng “propensity model” theo nghĩa marketing nêu trên, để phân biệt với “propensity score” trong nhân quả.
 
 #### **1.2.1. Phân Rã Thất Bại Của Mô Hình Propensity: Một Ví dụ Định Lượng**
 

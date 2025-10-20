@@ -1,0 +1,95 @@
+%% Uplift Engine Architecture v2 — includes Rule Engine & Redis
+%% Source of truth for rendering PNG (use mmdc via render-architecture.ps1)
+
+flowchart LR
+  %% Clients and Channels
+  subgraph Client_Channels
+    APP[VPBank NEO App]
+  end
+
+  %% Front Door
+  APIGW[API Gateway]
+  APP -->|HTTPS| APIGW
+
+  %% Decision Layer
+  LAMBDA_DECISION[Lambda Decision Service - Guardrails & Optimizer]
+  APIGW --> LAMBDA_DECISION
+
+  %% Rule Engine & Caching
+  RULE_ENGINE[Rule Engine - Lambda or Service]
+  REDIS[(ElastiCache Redis)]
+  DDB_RULES[(DynamoDB\nCompiled Rules)]
+  LAMBDA_DECISION --> RULE_ENGINE
+  RULE_ENGINE <--> REDIS
+  RULE_ENGINE -->|fallback| DDB_RULES
+
+  %% Feature Store (Online/Offline)
+  FEATURE_ONLINE[(SageMaker Feature Store Online - DynamoDB)]
+  FEATURE_OFFLINE[(SageMaker Feature Store Offline - S3/Parquet)]
+  LAMBDA_DECISION -->|GetRecord| FEATURE_ONLINE
+
+  %% Model Inference
+  SM_EP[SageMaker Real-time Endpoint - Uplift Model]
+  LAMBDA_DECISION -->|invoke_endpoint| SM_EP
+
+  %% Streaming & Logging
+  KINESIS[(Kinesis / MSK Kafka)]
+  LAMBDA_DECISION -->|Exposure/Outcome Logs| KINESIS
+
+  %% Analytics Warehouse
+  REDSHIFT[(Amazon Redshift)]
+  S3LAKE[(S3 Data Lake)]
+  KINESIS -->|Firehose| REDSHIFT
+  KINESIS -->|S3 sink| S3LAKE
+
+  %% Campaign Config (Business UI)
+  subgraph Business_Config
+    COGNITO[Cognito Auth]
+    APPSYNC[AppSync GraphQL API]
+    RULE_UI[Campaign Configuration UI - React/Amplify]
+    RULE_UI --> COGNITO
+    RULE_UI --> APPSYNC
+  end
+
+  APPSYNC --> DDB_RULES
+  DDB_RULES -->|Streams| COMPILE_RULE[[Lambda CompileRule]]
+  COMPILE_RULE --> REDIS
+  COMPILE_RULE --> DDB_RULES
+  COMPILE_RULE -->|Audit| KINESIS
+
+  %% Batch / Near Real-time Aggregates
+  GLUE[Glue Job]
+  EMR[EMR Serverless]
+  GLUE --> FEATURE_OFFLINE
+  EMR --> FEATURE_OFFLINE
+  S3LAKE --> GLUE
+  S3LAKE --> EMR
+  GLUE --> REDSHIFT
+  EMR --> REDSHIFT
+
+  %% MLOps
+  STEP[Step Functions Pipeline]
+  TRAIN[SM Training Jobs]
+  STEP --> GLUE
+  STEP --> TRAIN
+  TRAIN --> S3LAKE
+  TRAIN --> SM_EP
+
+  %% Optional EKS Inference/Rules
+  subgraph Optional_EKS
+    EKS_RULE[Rule Engine on EKS]
+    EKS_INF[Model Inference on EKS]
+  end
+  LAMBDA_DECISION -.-> EKS_RULE
+  LAMBDA_DECISION -.-> EKS_INF
+
+  %% Notes
+  classDef store fill:#f7f7ff,stroke:#4c6ef5,stroke-width:1px
+  class FEATURE_ONLINE,FEATURE_OFFLINE,S3LAKE,REDSHIFT,DDB_RULES,REDIS,KINESIS store
+
+  %% Emphasis labels (v2.1 highlights)
+  click RULE_ENGINE "#" "Rule Engine runtime"
+  click REDIS "#" "Low-latency cache"
+  click KINESIS "#" "Streaming (Kinesis/MSK)"
+  click RULE_UI "#" "Campaign Config UI"
+  click REDSHIFT "#" "Analytics Warehouse"

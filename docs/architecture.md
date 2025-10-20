@@ -1,6 +1,6 @@
 # Architecture Diagram — Uplift Engine
 
-This document accompanies `docs/architecture.drawio` and explains what to include in the diagram and how to export it.
+This document accompanies the architecture visuals. Source of truth for automation is `docs/images/architecture.mmd` (Mermaid) rendered via `docs/images/render-architecture.ps1`. The legacy `docs/architecture.drawio` can be used for alternate editing if needed.
 
 ## Required components and flows
 
@@ -16,13 +16,20 @@ This document accompanies `docs/architecture.drawio` and explains what to includ
 4. Analytics
    - S3 Data Lake & SageMaker Offline Store -> Amazon Athena -> Amazon QuickSight
 
-## How to create the visual diagram
-- Install the "Draw.io Integration" extension in VS Code (or use draw.io online).
-- Open `docs/architecture.drawio` and draw the AWS icons for each service. Label each icon clearly.
-- Use solid arrows for data flow and dashed arrows for control/orchestration triggers.
+## How to create/update the visual diagram
+Preferred (Mermaid CLI)
+- Edit `docs/images/architecture.mmd`.
+- Render PNG (pwsh):
+   - From repo root, run `docs/images/render-architecture.ps1 -Transparent` (requires Mermaid CLI; the script prints the exact command it runs).
+   - Output: `docs/images/architecture.png`.
+
+Alternate (Draw.io)
+- Install the "Draw.io Integration" extension in VS Code (or use draw.io desktop).
+- Open `docs/architecture.drawio` and edit. Export as PNG to `docs/architecture.png`.
 
 ## Exporting the diagram
-- After finishing, export the diagram as PNG and save it to `docs/architecture.png`.
+- Mermaid: run the PowerShell script as above.
+- Draw.io: export PNG and save to `docs/architecture.png`.
 
 ## Commit & Push (pwsh)
 Run these in the VS Code terminal (pwsh):

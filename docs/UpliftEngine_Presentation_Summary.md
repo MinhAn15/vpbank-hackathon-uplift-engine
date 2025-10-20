@@ -27,21 +27,34 @@
     * 3.1. Triết Lý Thiết Kế: MLOps-driven, Serverless-first, Low-latency.
     * 3.2. Sơ Đồ Kiến Trúc Tổng Thể.
     * 3.3. Phân Tích Sâu Các Thành Phần Dịch Vụ AWS.
+    * 3.4. Business User Configurability: Campaign Configuration UI & Rule Engine.
+    * 3.5. Rule Engine Architecture (DSL, Storage, Evaluation).
 
 5.  **Chương 4: Luồng Kỹ Thuật Chi Tiết - Từ Dữ Liệu Đến Quyết Định**
     * 4.1. Luồng MLOps: Tự Động Hóa Vòng Đời Mô Hình với Step Functions.
+        * 4.1.1. Data Cleaning, Enrichment & Transformation (Glue/EMR + Spark).
     * 4.2. Luồng Real-time: Phản Hồi Dưới 100ms.
+        * 4.2.1. Giám Sát & Cảnh Báo (Monitoring & Alerting).
+        * 4.2.2. Hiệu năng & Benchmarks (Performance & Capacity Plan).
+    * 4.3. Luồng Cấu hình & Đánh giá Rule (Batch/Streaming/Realtime).
 
 6.  **Chương 5: Hiện Thực Hóa Các Module Nâng Cao**
     * 5.1. Bộ Tối Ưu Hóa Ngân Sách (Knapsack Optimizer).
     * 5.2. Bộ Lọc An Toàn "Do-No-Harm" (Guardrails).
     * 5.3. Module Học Online (Contextual Bandits).
+    * 5.4. Explainability là Tính năng Lõi (SHAP/LIME trong Inference).
 
 7.  **Chương 6: Lộ Trình Triển Khai & Tầm Nhìn Tương Lai**
     * 6.1. Lộ Trình Triển Khai theo Từng Giai Đoạn.
     * 6.2. Mở Rộng Ngoài Khuyến Mãi: Next Best Action, Dynamic Pricing.
     * 6.3. Tầm Nhìn Về Quản Trị Rủi Ro & Explainable AI (XAI).
     * 6.4. Agile Delivery & Ways of Working.
+    * 6.5. Demo Scenarios: Cashback (Batch) & Sales Contest (Real-time).
+    
+Phụ lục
+    * Phụ lục A: Metric chuẩn & IaC mẫu (Monitoring & Alerting)
+    * Phụ lục B: Ma trận Loại Khuyến Mãi vs Ràng Buộc
+    * Phụ lục C: Đối chiếu yêu cầu & giả định (Traceability & Assumptions)
 
 ---
 
@@ -52,23 +65,30 @@
 > - Profit@K: Lợi nhuận (VND) khi target Top-K% theo Uplift Score.
 > - Tên biến trong code: dùng snake_case, ví dụ `uplift_score`, `uplift_std_error`.
 > - Treatment (Tác nhân): Bất kỳ can thiệp marketing áp dụng lên khách hàng, không chỉ khuyến mãi; bao gồm email, SMS, push/in-app notification, banner/offer trong app/web, cuộc gọi telesales/call center, v.v.
+> - Rule (Quy tắc): Biểu thức điều kiện nghiệp vụ dùng để xác định eligibility (đủ điều kiện) cho một ưu đãi/chương trình.
+> - Rule Set (Tập quy tắc): Tập các Rule có ưu tiên/độ phủ khác nhau, có hiệu lực trong một giai đoạn (effective window).
+> - Eligibility (Đủ điều kiện): Kết quả đánh giá Rule cho biết khách hàng có đạt điều kiện hưởng ưu đãi/chương trình hay không.
+> - Tier (Hạng/Ngưỡng): Cấp độ thưởng/ưu đãi theo mức chi tiêu hoặc KPI (ví dụ: Silver/Gold/Platinum).
+> - Explanation (Giải thích): Câu giải thích thân thiện (human-readable) được sinh tự động mô tả vì sao khách hàng đủ điều kiện (ví dụ: "Chi tiêu 5M VND nhóm Dining trong tuần này, đạt hạng Gold").
+> - SHAP (SHapley Additive exPlanations): Kỹ thuật phân rã đóng góp của từng feature vào dự đoán; hỗ trợ tính nhanh (TreeSHAP) với mô hình cây.
+> - Reason Codes: Danh sách ngắn (top-K) các yếu tố chính ảnh hưởng đến quyết định, kèm dấu (+/-) và cường độ xấp xỉ.
 
 ### **Tóm Tắt Quản Trị (Executive Summary)**
 
-Hãy tưởng tượng cùng một ngân sách 5 tỷ đồng cho khuyến mãi, nhưng thay vì “rải” và hy vọng, mỗi đồng đều được đặt đúng chỗ — vào những khách hàng thực sự có thể được thuyết phục. Đó là điều Uplift Engine mang lại: biến marketing từ chi phí thành động cơ tăng trưởng bằng Causal AI. Chúng ta không hỏi “Ai sẽ mua?”, mà hỏi “Ai sẽ thay đổi hành vi khi có khuyến mãi?” rồi đo lường bằng Net Profit Uplift để đảm bảo mỗi quyết định đều sinh lời.
+Hãy tưởng tượng cùng một ngân sách 5 tỷ đồng cho khuyến mãi, nhưng thay vì “rải” và hy vọng, mỗi đồng đều được đặt đúng chỗ — vào những khách hàng thực sự có thể được thuyết phục. Đó là điều Uplift Engine mang lại: biến marketing từ chi phí thành động cơ tăng trưởng bằng Causal AI. Không chỉ thông minh hơn, nền tảng còn “trao quyền” cho nghiệp vụ: business users có thể tự thiết kế và vận hành chiến dịch mà không phụ thuộc vào developer, trong khi hệ thống vẫn đảm bảo kiểm soát và an toàn.
 
 Các nền tảng dữ liệu khuyến mãi truyền thống thường:
 - Tập trung vào báo cáo quá khứ và dự đoán tương lai, nhưng ít trả lời câu hỏi: hành động nào mang lại lợi nhuận cao nhất?
 - Dẫn đến lãng phí ngân sách tới 70% ở các nhóm không tạo giá trị gia tăng.
 
 "Uplift Engine" mang lại thay đổi quan trọng:
-- Không chỉ là Data Platform mà là một cỗ máy ra quyết định (Decisioning Engine).
-- Áp dụng Causal AI để chuyển từ dự đoán “Ai sẽ mua?” sang chỉ định “Nên tác động vào ai để tối đa hóa lợi nhuận?”.
+- Không chỉ là Data Platform mà là một Decisioning Engine kết hợp Rule Engine cấu hình được với Causal AI.
+- Áp dụng Causal AI để chuyển từ dự đoán “Ai sẽ mua?” sang chỉ định “Nên tác động vào ai để tối đa hóa lợi nhuận?”, đồng thời luôn kèm theo giải thích rõ ràng (explainability) cho từng quyết định.
 
 Kiến trúc và tác động:
-- Xây trên MLOps serverless của AWS với SageMaker Feature Store làm trung tâm.
-- Độ trễ realtime < 100ms, dữ liệu nhất quán, dễ mở rộng.
-- Kết quả mô phỏng: tăng 308% ROI và tiết kiệm 70% ngân sách so với cách truyền thống.
+- Serverless-first, realtime < 100ms; SageMaker Feature Store làm trung tâm để loại bỏ training-serving skew.
+- Tích hợp đầy đủ các thành phần hiện đại: Redis để cache và giảm độ trễ, Kafka/MSK hoặc Kinesis cho streaming, Redshift cho data warehousing và báo cáo chuyên sâu.
+- Kết quả mô phỏng: tăng 308% ROI và tiết kiệm 70% ngân sách so với cách truyền thống, trong khi minh bạch hóa lý do đủ điều kiện/ra quyết định cho từng khách hàng.
 
 ---
 ### **Chương 1: Bối Cảnh & Thách Thức Kinh Doanh**
@@ -286,9 +306,30 @@ Bốn triết lý chính đã định hình các lựa chọn công nghệ của
 
 #### **3.2. Sơ Đồ Kiến Trúc Tổng Thể**
 
-Hình dưới đây minh họa kiến trúc tổng thể của hệ thống Uplift Engine trên AWS, bao gồm các luồng Realtime và Offline/MLOps cùng các thành phần chính như API Gateway, Lambda (Decisioning + Guardrails + Optimizer), SageMaker Feature Store (Online/Offline), Step Functions, Training Jobs, DynamoDB và Kinesis.
+Hình dưới đây minh họa kiến trúc tổng thể “Uplift Engine 2.1” trên AWS, bao gồm các luồng Realtime và Offline/MLOps cùng các thành phần chính:
+- API Gateway → Lambda Decision Service (Guardrails + Optimizer)
+- Rule Engine runtime (Lambda/Service) với Redis cache; Rule Store trên DynamoDB; UI cấu hình chiến dịch (Campaign Configuration UI) qua AppSync GraphQL + Cognito
+- SageMaker Feature Store (Online/Offline) và SageMaker Real-time Endpoint (Uplift Model)
+- Streaming qua Kinesis hoặc Amazon MSK (Kafka) cho exposure/outcome/audit events
+- S3 Data Lake, AWS Glue/EMR Serverless cho ETL/feature engineering; Amazon Redshift làm data warehouse/analytics
+- AWS Step Functions điều phối MLOps + SageMaker Training Jobs
 
 ![Sơ đồ kiến trúc hệ thống (AWS)](images/architecture.png)
+
+Chú thích nhanh (v2.1 – các bổ sung nổi bật):
+- Redis cache layer: giảm độ trễ rule/feature lặp lại xuống 1–5ms, hỗ trợ leaderboard/contest state.
+- Kafka/MSK cho streaming: tùy chọn thay thế Kinesis khi cần exactly-once/đa hệ sinh thái.
+- Rule Engine component: đánh giá eligibility/priority, sinh explanation template, tích hợp guardrails.
+- Campaign Configuration UI: React/Amplify + AppSync GraphQL, publish version hóa, audit trail đầy đủ.
+- Redshift data warehouse: lưu trữ phân tích lịch sử campaign, explainability, eligibility batch và KPI.
+
+- Chế độ xử lý: Batch (Glue/EMR), Near real-time (streaming aggregates qua Kinesis/MSK + Lambda), Real-time (API Gateway + Lambda + Feature Store + Endpoint + Rule Engine) — đáp ứng tiêu chí của ban tổ chức.
+
+Tech stack (theo yêu cầu ban tổ chức):
+- Ngôn ngữ: Python (ETL/ML/guards/optimizer), Node.js/TypeScript (Rule Engine, UI, AppSync resolvers).
+- Cloud: AWS (API Gateway, Lambda, Step Functions, SageMaker, DynamoDB, AppSync, Cognito, Glue, EMR Serverless, S3, CloudWatch).
+- CSDL: Amazon Redshift (DWH), ElastiCache for Redis (cache), DynamoDB (rule store, online features via Feature Store backend).
+- Khác: Docker (đóng gói training/inference/service), Kubernetes/EKS (tùy chọn cho throughput cao), Kafka/Amazon MSK (tùy chọn streaming, song song Kinesis).
 
 Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Luồng Dữ liệu (Data Flow), Luồng Huấn luyện (MLOps Pipeline), Luồng Dự đoán (Real-time Inference), và Luồng Phân tích (Analytics), tất cả đều được tích hợp một cách liền mạch.
 
@@ -299,6 +340,7 @@ Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Lu�
         - Mục tiêu: loại bỏ training-serving skew, đảm bảo tính nhất quán feature giữa offline và online.
         - Hai kho: Offline (S3/Parquet) cho training & phân tích, Online (DynamoDB) cho realtime (<10ms).
         - Điểm mấu chốt: EventTime + point-in-time correctness cho truy vấn “du hành thời gian”.
+        - Loại dữ liệu: Hỗ trợ cả structured và unstructured (sau xử lý). Structured gồm profiles, balances, transactions; unstructured gồm văn bản (CS call transcripts, phản hồi Email/SMS, social mentions) và clickstream JSON.
     * **Implementation:**
         - Khai báo `FeatureGroup` với `FeatureDefinition`, `record_identifier`, `event_time`.
         - Bật `enable_online_store` và bảo mật (KMS) cho online store.
@@ -331,6 +373,9 @@ Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Lu�
 > - Bắt buộc kiểm tra point-in-time correctness trong pipeline tạo dataset training.
 > - Quản trị schema: dùng schema registry hoặc pydantic/dataclass để định nghĩa & validate schema, đồng bộ Offline/Online Store, tránh lệch cột.
 > - Kiểm soát chi phí: thiết lập S3 Lifecycle Policy (ví dụ >90 ngày chuyển sang Glacier) cho Offline Store để tối ưu hóa chi phí.
+> - Unstructured → Features: 
+>   - Text: pipeline dùng Amazon Transcribe (nếu cần speech-to-text) + Comprehend hoặc sentence-transformers (SageMaker/Batch) để rút trích sentiment/topic và embeddings; lưu raw text/JSON ở S3, lưu vector/điểm sentiment vào Feature Store.
+>   - Clickstream JSON: Kinesis/MSK → Lambda/Glue Streaming normalize sự kiện, tính aggregates hành vi (session_count_7d, dwell_time_avg, click_rate_feature_X) theo cửa sổ thời gian → ghi vào Feature Store; raw JSON lưu ở S3 để truy vết.
 
 * **AWS Lambda (w/ Provisioned Concurrency):**
     * **Vấn đề Cold Start:** Một hàm Lambda thông thường có thể mất từ vài trăm mili-giây đến vài giây để khởi động trong lần gọi đầu tiên sau một thời gian không hoạt động. Trong một ứng dụng tài chính như VPBank NEO, độ trễ này là không chấp nhận được.
@@ -341,7 +386,173 @@ Sơ đồ trên minh họa 4 luồng vận hành chính của hệ thống: Lu�
     * **Giải pháp & Implementation:** Chúng tôi sử dụng **AWS Step Functions** để triển khai một logic `Choice State`. Dựa trên siêu dữ liệu (metadata) của dữ liệu đầu vào (ví dụ: kích thước file trên S3), Step Functions sẽ quyết định:
         * `IF data_size < 10GB THEN` → Gọi **AWS Glue Job**.
         * `ELSE` → Gọi **Amazon EMR Serverless Application**.
-    Điều này cho phép hệ thống tự động lựa chọn công cụ phù hợp nhất cho từng tác vụ, tối ưu hóa chi phí một cách thông minh.
+        Điều này cho phép hệ thống tự động lựa chọn công cụ phù hợp nhất cho từng tác vụ, tối ưu hóa chi phí một cách thông minh.
+
+* **AppSync GraphQL + Campaign Configuration UI (Rule Builder):**
+        * **Mục tiêu:** Cho phép business users (không cần kỹ thuật) tự thiết kế và cấu hình rules cho campaigns với độ an toàn và kiểm soát phiên bản.
+        * **Thành phần:**
+                - UI: Ứng dụng web TypeScript/React (Amplify), host trên S3 + CloudFront; đăng nhập qua Amazon Cognito.
+                - API: AWS AppSync (GraphQL) cung cấp schema cho Rule/RuleSet/Publish/Versioning; Resolvers kết nối DynamoDB và Lambda.
+                - Store: DynamoDB lưu bản nháp và bản phát hành (published) của rule; lịch sử thay đổi (audit log) đổ về S3/Redshift qua DynamoDB Streams + Kinesis Firehose.
+        * **Explainability:** Mỗi rule có `explanation_template` (chuỗi có placeholders) để sinh câu giải thích thân thiện khi rule thỏa mãn.
+
+* **Rules Runtime (DynamoDB + ElastiCache Redis + Redshift):**
+        * **DynamoDB:** Nơi lưu "compiled rules" đã publish để phục vụ realtime (truy vấn < 10ms).
+        * **ElastiCache Redis:** Cache nóng các RuleSet đã biên dịch cho mỗi campaign/segment để giảm độ trễ còn ~1–5ms; TTL ngắn và cơ chế invalidation sau publish.
+        * **Amazon Redshift:** Lưu phiên bản rule, thống kê sử dụng, và kết quả eligibility batch để phục vụ báo cáo/phân tích theo chiến dịch; thuận tiện cho data mart marketing.
+        * **Kafka/Kinesis:** Sự kiện publish/rollback và audit có thể phát qua Amazon Kinesis hoặc Amazon MSK (Kafka) để các dịch vụ khác subscribe.
+
+* **Rule Engine Service (Lambda hoặc Container):**
+        * **Tùy chọn triển khai:**
+                - Serverless: Lambda Python/Node.js tải RuleSet từ Redis/DynamoDB, đánh giá điều kiện theo input features, trả về eligibility + explanation.
+                - Containerized: Nếu cần throughput cao/độ trễ cực thấp, đóng gói Rule Engine bằng Docker (Node.js/TypeScript với json-rules-engine/CEL) và chạy trên AWS Fargate/EKS.
+        * **An toàn & quản trị:** Hỗ trợ priority/precedence, hiệu lực theo thời gian (effective_from/to), và workflow phê duyệt (Human-in-the-loop) trước khi publish.
+
+> Ghi chú: Kiến trúc vẫn "serverless-first" cho prototype; phương án container (Docker/Kubernetes) là đường mở rộng để đáp ứng RPS/latency rất cao hoặc yêu cầu on-prem/hybrid.
+
+* **Amazon Redshift (Data Warehousing & Batch Analytics):**
+    * **Vai trò:** Kho dữ liệu phân tích trung tâm cho historical campaign data, exposure/outcome logs, eligibility batches, và chỉ số vận hành. Cho phép chạy truy vấn phức tạp (window, joins lớn), xây dựng data mart marketing, và dashboard hiệu quả chiến dịch.
+    * **Tích hợp:**
+        - Firehose/Glue đẩy dữ liệu vào Redshift (COPY/Auto-copy S3 → Redshift).
+        - Kết nối QuickSight để tạo báo cáo Profit@K, ROI, top-10 reason codes, funnel theo campaign.
+        - Lưu version model/ruleset để phân tích hậu kiểm, A/B test và attribution uplift.
+
+* **ElastiCache Redis (Caching Layer):**
+    * **Feature cache:** Cache các feature aggregates hay dùng (segment, tier, weekly spend bucket) để giảm độ trễ/chi phí các truy vấn lặp lại từ Online Feature Store.
+    * **Rule cache:** Cache RuleSet đã biên dịch cho mỗi campaign/segment → rule evaluation 1–5ms; invalidation khi Publish/rollback.
+    * **Session/State Bandits:** Lưu trạng thái bandit hoặc counters tạm thời (TTL) phục vụ real-time contests/leaderboards.
+
+* **Kafka vs Kinesis (Sự lựa chọn và thay thế):**
+    * **Kinesis (mặc định serverless):** Tích hợp sâu AWS, quản trị tối thiểu, phù hợp ingestion logs, exposure/outcome stream, và Firehose (ETL nhẹ) → Redshift/S3.
+    * **Amazon MSK (Kafka):** Lựa chọn khi cần exactly-once semantics end-to-end, kết nối hệ thống ngoài AWS, hoặc xử lý CEP phức tạp với Kafka Streams/Flink. Kiến trúc cho phép thay thế Kinesis bằng MSK ở các luồng sự kiện chính.
+
+* **Docker & Kubernetes (EKS):**
+    * **Training:** SageMaker Training Jobs luôn chạy trong Docker containers (Script Mode/Estimator). Hình ảnh container có thể tuỳ biến để cài đặt thư viện causal/econml, shap, ortools.
+    * **Inference thay thế Lambda:** Với runtime phức tạp/nhu cầu throughput cao/các dependency native, có thể triển khai Rule Engine và/hoặc Model Inference trên **Amazon EKS** (Deployment + HPA, NLB). Dùng **AWS Load Balancer Controller** và **Karpenter** để tự động co giãn.
+    * **Batch trên EKS:** Các batch/spark jobs có thể chạy qua Spark Operator trên EKS khi cần kiểm soát chi tiết cluster/runtime; vẫn giữ phương án mặc định Glue/EMR Serverless cho tính đơn giản.
+
+#### **3.4. Business User Configurability: Campaign Configuration UI & Rule Engine**
+- Tham khảo thêm: mục 3.5 trình bày kiến trúc Rule Engine chi tiết, mục 4.3 mô tả luồng cấu hình/đánh giá rule và mục 5.2 guardrails.
+
+#### **3.5. Rule Engine Architecture (DSL, Storage, Evaluation)**
+
+Để đáp ứng bài toán “configure rules for promotions” cho non-technical users, chúng tôi cung cấp một Rule Engine đơn giản, an toàn và có khả năng mở rộng.
+
+1) Domain-Specific Language (DSL)
+Hỗ trợ định nghĩa rule thân thiện dạng YAML/JSON. Ví dụ YAML:
+
+```yaml
+rule_id: "cashback_dining_5m"
+name: "Cashback Dining 100K nếu chi tiêu ≥5M/7d"
+priority: 80
+effective_from: "2025-10-15T00:00:00Z"
+effective_to: "2025-11-30T23:59:59Z"
+scope:
+    segments: ["NEO_ACTIVE_USERS"]
+    exclusions: ["DNC", "STAFF"]
+conditions:
+    - field: "spending_category_7d.dining"
+        operator: ">="
+        value: 5000000
+    - field: "customer_tier"
+        operator: "in"
+        value: ["Gold", "Platinum"]
+actions:
+    - type: "cashback"
+        value_vnd: 100000
+        expiry_days: 30
+explanation_template: "KH chi tiêu {{spending_category_7d.dining}} VND Dining/7d, hạng {{customer_tier}} → cashback 100K"
+```
+
+2) Lưu trữ & Phiên bản hóa (DynamoDB + S3)
+- DynamoDB (bảng `promotion_rules`): lưu bản PUBLISHED đã biên dịch (compiled) để phục vụ realtime; khóa phân vùng `rule_set_id`, khóa sắp xếp `version`.
+- S3 (data lake): lưu nguyên bản YAML/JSON (draft & history) phục vụ audit; DynamoDB Streams + Firehose đẩy audit vào Redshift.
+- Mỗi `rule_set` có `active_version`. Publish/rollback chỉ cần cập nhật con trỏ phiên bản.
+
+3) Biên dịch & Cache (Lambda + Redis)
+- Lambda `CompileRule` chuyển YAML/JSON thành cây biểu thức tối ưu (predicate tree), sinh sẵn lookup sets, validate operator/type/range, và ghi bản `compiled` vào DynamoDB.
+- Đẩy cache nóng `ruleset:compiled:{rule_set_id}:{version}` lên Redis để rule evaluation đạt 1–5ms; invalidation khi publish/rollback.
+
+4) Đánh giá trong thời gian thực (Evaluation in Lambda/Service)
+Ví dụ pseudo-code (Node.js/TypeScript) đánh giá rule đã biên dịch:
+
+```ts
+type Predicate = { field: string; op: string; value: any };
+type CompiledRule = { id: string; priority: number; all: Predicate[]; actions: any; explanation: string };
+
+export function evaluateRule(rule: CompiledRule, features: Record<string, any>) {
+    const ok = rule.all.every(p => compare(features[p.field], p.op, p.value));
+    if (!ok) return { eligible: false, reason: `Not met: ${missingCondition(rule, features)}` };
+    return {
+        eligible: true,
+        matched_rule_id: rule.id,
+        actions: rule.actions,
+        explanation: render(rule.explanation, features)
+    };
+}
+```
+
+5) Tích hợp với Uplift Model & Optimizer
+- Rules filter: Rule Engine xác định `eligibility` trước. Chỉ khách hàng đủ điều kiện mới chuyển sang mô hình Uplift để tính `uplift_score`.
+- Ranking: Uplift Model sắp xếp (rank) theo `uplift_score` (và khoảng tin cậy). Optimizer (5.1) chọn tập tối ưu theo ngân sách/chi phí.
+- Guardrails (5.2): sau khi đủ điều kiện + uplift dương, áp dụng luật cứng/mềm để loại trừ rủi ro (DNC, CI lower bound, tần suất liên lạc...).
+
+6) Batch/Streaming
+- Batch: Glue/EMR đọc `compiled rules` để chấm đủ điều kiện quy mô lớn vào Redshift/S3.
+- Streaming: Kinesis/MSK cập nhật aggregates và kích hoạt đánh giá rule theo sự kiện (ví dụ đạt mốc spend). Kết quả đủ điều kiện có thể được cache TTL trên Redis cho UI.
+
+> Liên kết: mục 3.4 (UI & AppSync), 4.3 (Luồng cấu hình & đánh giá Rule), 5.1 (Optimizer), 5.2 (Guardrails).
+
+Để đáp ứng yêu cầu "minimal technical dependency", chúng tôi bổ sung rõ ràng thành phần cấu hình dành cho người dùng nghiệp vụ:
+
+1) Campaign Configuration UI (Rule Builder Interface)
+- Giao diện kéo-thả hoặc form có kiểm soát (schema-driven), kèm bộ mẫu (template) theo kịch bản thường dùng: cashback theo ngưỡng chi tiêu, tiered rewards, sales contest, challenge theo số giao dịch, v.v.
+- Validations thời gian thực (real-time) trên UI: kiểm tra trường, ngưỡng, danh mục merchant, xung đột lịch hiệu lực, trùng ưu tiên.
+- Quy trình: Draft → Review → Approve → Publish. Mỗi lần Publish tạo "RuleSet Version" bất biến, có thể rollback.
+
+2) Rule Definition & Schema (ví dụ)
+```json
+{
+    "rule_id": "CASHBACK_WEEKLY_5M_DINING_GOLD",
+    "name": "Cashback Dining tuần - Gold 5M",
+    "version": 3,
+    "status": "PUBLISHED",
+    "campaign_id": "CBW_2025_W42",
+    "priority": 80,
+    "effective_from": "2025-10-15T00:00:00Z",
+    "effective_to": "2025-11-30T23:59:59Z",
+    "scope": {
+        "segments": ["NEO_ACTIVE_USERS"],
+        "exclusions": ["DNC", "STAFF"]
+    },
+    "conditions": {
+        "all": [
+            { "metric": "weekly_spend_vnd", "operator": ">=", "value": 5000000, "window": "7d", "category": "DINING" },
+            { "metric": "customer_tier", "operator": ">=", "value": "GOLD" }
+        ]
+    },
+    "actions": {
+        "reward_type": "CASHBACK",
+        "reward_value_pct": 0.05,
+        "cap_vnd": 200000
+    },
+    "explanation_template": "KH chi tiêu {{weekly_spend_vnd}} VND nhóm Dining trong 7 ngày, đạt hạng {{customer_tier}} → đủ điều kiện Cashback 5% (tối đa 200K).",
+    "audit": { "created_by": "po_thẻ", "approved_by": "risk_manager", "approved_at": "2025-10-16T10:05:00Z" }
+}
+```
+
+3) Compile & Caching
+- Sau khi Publish, AppSync kích hoạt Lambda "CompileRule" qua DynamoDB Streams. Lambda chuyển JSON rule thành cây biểu thức tối ưu (predicate tree/CEL), tính sẵn lookup set (ví dụ danh mục merchant) và viết bản "compiled" vào DynamoDB, đồng thời push cache Redis.
+- Cơ chế cache-invalidation: mỗi lần publish/rollback tạo một event (Kinesis/MSK) để các Rule Engine worker cập nhật bộ nhớ.
+
+4) Explainability-by-Design
+- Mọi Rule bắt buộc có `explanation_template`. Khi điều kiện thỏa, engine render template cùng các tham số thực tế, ví dụ: "Chi tiêu 5,240,000 VND Dining tuần này, đạt Gold".
+- Các lý do loại trừ (exclusions) cũng được log có cấu trúc để hỗ trợ khiếu nại/audit.
+
+5) Governance & Compliance
+- Quy trình phê duyệt hai bước (PO → Risk/Compliance) cho rule có tác động tài chính lớn; lưu dấu vết (immutable logs) lên S3 và Redshift.
+- Ràng buộc xung đột: phát hiện hai rule cùng ưu tiên/điều kiện đè nhau; chính sách resolve (priority/first-match/most-benefit) cấu hình được.
+
 
 ---
 
@@ -365,6 +576,65 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
     * **Input:** Đường dẫn đến dữ liệu thô mới nhất trên S3 Data Lake.
     * **Process:** Job Spark này sẽ thực hiện các tác vụ feature engineering phức tạp, tính toán các đặc trưng tổng hợp (aggregated features) và các đặc trưng dựa trên cửa sổ thời gian (window-based features).
     * **Output:** Dữ liệu feature mới được ghi vào **SageMaker Offline Feature Store**. Job trả về trạng thái `SUCCEEDED` hoặc `FAILED`.
+
+##### **4.1.1. Data Cleaning, Enrichment & Transformation (Glue/EMR + Spark)**
+
+Mục tiêu: Chuẩn hóa dữ liệu đầu vào, làm giàu thông tin và tạo đặc trưng nhất quán cho cả training và serving.
+
+- Data Cleaning
+    - Missing values: chiến lược imputation theo ngữ cảnh (ví dụ: 0 cho số liệu giao dịch, forward/backward fill cho chuỗi thời gian, hoặc median/mean với clip ngưỡng).
+    - Outliers: phát hiện qua IQR hoặc z-score; xử lý bằng winsorization/clip theo percentile (ví dụ 1st/99th) để ổn định mô hình.
+    - Deduplication: chuẩn hóa khóa (customer_id, txn_ts, merchant_id) và loại trùng theo window (Watermark) trong Spark.
+
+- Data Enrichment
+    - External joins: ánh xạ MCC → danh mục ngành, bảng địa lý (province/city) để suy ra khu vực; POI density nếu có.
+    - Derived features: spending velocity (delta theo tuần), category preference share, recency/frequency/monetary (RFM), session engagement.
+    - Time windows: 7/30/90 ngày với Spark window functions; điểm nhấn là point-in-time correctness để tránh leakage.
+
+- Data Transformation
+    - Normalization/Scaling: min-max/standard scaler cho các biến liên tục (thực hiện ở bước training pipeline; lưu metadata để áp dụng nhất quán khi serving).
+    - Categorical encoding: target encoding/WOE hoặc one-hot (giới hạn cardinality); với tree models có thể giữ dạng index.
+    - ML-ready features: định dạng Parquet, partition by event_date/customer_segment để tăng tốc đọc.
+
+- Pipeline Implementation (Spark on Glue/EMR)
+    - Dùng Glue DynamicFrame/Apache Spark DataFrame; bật predicate pushdown, tối ưu kích thước file (~128MB Parquet), và auto-tune (EMR dynamic allocation).
+    - Viết UDF/UDAF cẩn trọng (ưu tiên native Spark functions); kiểm thử unit với mẫu dữ liệu.
+
+Ví dụ PySpark rút gọn (minh họa):
+
+```python
+from pyspark.sql import functions as F, Window
+
+tx = spark.read.parquet("s3://lake/transactions/")
+cust = spark.read.parquet("s3://lake/customers/")
+mcc = spark.read.parquet("s3://ref/mcc_mapping/")
+
+# Deduplicate
+w_dupe = Window.partitionBy("customer_id", "txn_ts", "merchant_id").orderBy(F.col("amount_vnd").desc())
+tx = tx.withColumn("rn", F.row_number().over(w_dupe)).filter("rn = 1").drop("rn")
+
+# Join enrichment (MCC → category)
+tx = tx.join(mcc, "mcc", "left")
+
+# Outlier clip (1st/99th percentile per category)
+q = tx.approxQuantile("amount_vnd", [0.01, 0.99], 0.001)
+tx = tx.withColumn("amount_vnd_clip", F.when(F.col("amount_vnd") < q[0], q[0])
+                                                                .when(F.col("amount_vnd") > q[1], q[1])
+                                                                .otherwise(F.col("amount_vnd")))
+
+# Window aggregates (7/30/90d)
+w7 = Window.partitionBy("customer_id", "category").orderBy(F.col("txn_ts").cast("timestamp")).rangeBetween(-7*24*3600, 0)
+feat = tx.withColumn("spend_7d", F.sum("amount_vnd_clip").over(w7))
+
+# Customer-level features
+feat = feat.groupBy("customer_id").agg(
+        F.sum("amount_vnd_clip").alias("total_spend_30d"),
+        F.countDistinct("merchant_id").alias("unique_merchants_30d")
+)
+
+out = feat.join(cust.select("customer_id", "tier", "segment"), "customer_id", "left")
+out.write.mode("overwrite").parquet("s3://feature-store/offline/customer_features/v1/date=2025-10-20/")
+```
 
 2.  **State: `Parallel Training Jobs` (Parallel)**
     * **Trigger:** Chạy sau khi `Feature Engineering Job` thành công.
@@ -491,18 +761,35 @@ Luồng này là xương sống của một "Modernized Data Platform", đảm b
 
 7.  **Response (Lambda → API Gateway → Client):**
     * **Action:** Hàm Lambda tạo một JSON response cuối cùng.
-    * **Payload (JSON Body):**
-      ```json
-      {
-        "decisionId": "decision-uuid-1234",
-        "action": "TARGET",
-        "offer": {
-          "offerId": "PROMO_15_PERCENT_OFF",
-          "creative": "creative_banner_A.png"
-        }
-      }
-      ```
+        * **Payload (JSON Body):**
+            ```json
+            {
+                "decisionId": "decision-uuid-1234",
+                "action": "TARGET",
+                "offer": {
+                    "offerId": "PROMO_15_PERCENT_OFF",
+                    "creative": "creative_banner_A.png"
+                },
+                "model": {
+                    "uplift_score": 0.085,
+                    "uplift_std_error": 0.021,
+                    "explanation": {
+                        "primary_factors": [
+                            "Customer spent 5.2M VND in Dining category in last 7 days (+0.04 uplift)",
+                            "Has Gold tier status (+0.03 uplift)",
+                            "High engagement with mobile app (+0.015 uplift)"
+                        ],
+                        "threshold_met": "Spending > 5M VND in target category"
+                    }
+                }
+            }
+            ```
     * **Logging:** Đồng thời, Lambda sẽ ghi lại một bản ghi chi tiết (exposure log) về quyết định này vào **Amazon Kinesis Firehose** để phục vụ cho việc phân tích và cập nhật mô hình sau này.
+
+        * **Hiệu năng Explainability:** Để giữ E2E < 100ms, endpoint mô hình áp dụng một trong các chiến lược:
+                - TreeSHAP nội tuyến đối với mô hình cây (UpliftRF/CatBoostUplift): tính top-K feature contributions trong 2–8ms/record trên instance phù hợp; trả về trực tiếp cùng `uplift_score`.
+                - Đối với DR-Learner/ensemble phức tạp: trả về lý do dựa trên Rule Engine + các feature aggregate then chốt (reason codes) ngay lập tức; đồng thời phát sinh SHAP async (Firehose) để cập nhật bảng giải thích giàu chi tiết cho UI.
+                - Có thể dùng cache SHAP theo phân khúc/feature bucket cho những màn hình có tần suất cao.
 
 > Lời khuyên triển khai:
 > - Bật Provisioned Concurrency theo khung giờ cao điểm; dùng Auto Scaling theo RPS.
@@ -526,7 +813,73 @@ Một hệ thống real-time chỉ tốt khi được giám sát chặt chẽ. C
 - SageMaker Model Monitor:
     - Data Quality: phát hiện Data Drift trên phân phối input features (theo lịch hàng ngày/giờ).
     - Model Quality: theo dõi metric suy luận so với ground truth trễ (delayed labels) nếu khả dụng.
-    - Tự động kích hoạt pipeline huấn luyện lại (Step Functions) khi vượt ngưỡng drift đã định.
+        - Tự động kích hoạt pipeline huấn luyện lại (Step Functions) khi vượt ngưỡng drift đã định.
+
+---
+
+##### **4.2.2. Hiệu năng & Benchmarks (Performance & Capacity Plan)**
+
+Bảng chỉ tiêu hiệu năng để chứng minh khả năng xử lý các quy mô dữ liệu khác nhau (đáp ứng tiêu chí đánh giá của ban tổ chức):
+
+- Batch processing
+    - Throughput mục tiêu: 1,000,000 giao dịch trong ≤ 6 giờ (~46 txn/s) trên Glue/EMR Serverless.
+    - End-to-end latency: ≤ 8 giờ từ dữ liệu thô đến đầu ra cuối (eligible + scored output).
+    - Scalability: Thiết kế mở rộng đến 10,000,000 giao dịch/ngày bằng cách tăng DPUs (Glue) hoặc vCPU/Memory (EMR Serverless) và bật auto-scaling.
+
+- Real-time decisioning
+    - Latency: P95 < 100ms, P99 < 150ms (API Gateway + Lambda + Feature fetch + Model + Rule eval + Guardrails).
+    - Throughput: ≥ 10,000 requests/second với Provisioned Concurrency phù hợp (chia shard theo route và bật reserved concurrency).
+    - Concurrency: ≥ 100,000 concurrent sessions (đo ở mức client/session; backend chịu tải theo RPS nhờ PC + autoscale endpoint/Lambda).
+
+- Data ingestion
+    - Stream ingest: Kinesis/MSK ≥ 50,000 events/second (nhiều shard/partition; batch size và compression hợp lý).
+    - Feature Store writes: ≥ 10,000 records/second (song song hóa writers; backpressure và retry có kiểm soát; batch write khi phù hợp).
+
+Lưu ý triển khai để đạt chỉ tiêu:
+- Provisioned Concurrency cho Lambda tại khung giờ cao điểm; pre-warm sau deploy.
+- SageMaker Endpoint autoscaling (target RPS/CPU) và mô hình nhẹ hóa để giảm ModelLatency.
+- Glue/EMR: bật dynamic allocation, tối ưu partitioning và file size (S3/Parquet), dùng pushdown predicate.
+- Kinesis/MSK: thiết kế partition key đều, tăng số shard/partition theo lưu lượng, dùng aggregated records.
+- Redis cache: giảm tải đọc rules/features lặp lại để giữ P95 thấp ổn định.
+
+#### **4.3. Luồng Cấu hình & Đánh giá Rule (Batch/Streaming/Realtime)**
+
+Mục tiêu của luồng này là đảm bảo business users có thể cấu hình nhanh, kiểm soát phiên bản, và hệ thống có thể đánh giá rule ở cả ba chế độ: batch, near real-time và real-time.
+
+1) Authoring & Publishing (UI → AppSync → DynamoDB → Compile)
+- Người dùng tạo/chỉnh Rule trên UI; GraphQL mutation lưu bản nháp vào DynamoDB.
+- Hành động "Publish" tạo một phiên bản bất biến (immutable). Sự kiện Streams kích hoạt Lambda "CompileRule" để biên dịch và cache.
+- Audit log (ai làm gì, khi nào) được đẩy sang S3 và Redshift qua Kinesis Firehose.
+
+2) Real-time Evaluation (Decision Lambda)
+- Trước khi gọi mô hình uplift, Decision Lambda nạp RuleSet đã biên dịch từ Redis (fallback: DynamoDB), đánh giá eligibility dựa trên feature vector hiện tại.
+- Kết quả (ví dụ):
+```json
+{
+    "eligibility": true,
+    "matched_rule_id": "CASHBACK_WEEKLY_5M_DINING_GOLD",
+    "explanation": "KH chi tiêu 5,240,000 VND nhóm Dining trong 7 ngày, đạt hạng Gold",
+    "tier": "GOLD"
+}
+```
+- Nếu `eligibility=false`, trả về lý do chính (ví dụ: "Chưa đạt ngưỡng 5M VND trong 7 ngày"). Nếu `true`, tiếp tục sang Guardrails và Optimizer; kết hợp với `uplift_score` để quyết định cuối cùng.
+
+3) Near Real-time / Streaming (Transactions → Kinesis/MSK → Lambda)
+- Giao dịch/sự kiện từ ứng dụng đẩy vào Amazon Kinesis hoặc Amazon MSK (Kafka).
+- Lambda consumer cập nhật các aggregates thời gian (ví dụ: `weekly_spend_vnd_by_category`) vào Feature Store/DynamoDB và phát hiện eligibility tức thì cho các rule dựa trên event (ví dụ: challenge theo số giao dịch/ngưỡng spend). Kết quả eligibility có thể được ghi tạm thời vào Redis (TTL) để app đọc và hiển thị.
+
+4) Batch Evaluation (Glue/EMR → Redshift)
+- Với các chiến dịch batch (ví dụ tính thưởng cuối tuần), AWS Glue/EMR đọc RuleSet đã biên dịch từ S3/DynamoDB, áp dụng UDF evaluation trên hàng chục triệu bản ghi và ghi kết quả vào S3/Parquet và Amazon Redshift để đối soát/chi trả.
+- Báo cáo eligibility và chi phí thưởng theo campaign được dựng trực tiếp từ Redshift/QuickSight.
+
+5) Hai kịch bản demo (đáp ứng Deliverables của cuộc thi)
+- Batch-driven Cashback: Rule ngưỡng chi tiêu theo tuần + cap; chạy batch hàng đêm; xuất danh sách đủ điều kiện và giải thích. KPI trình diễn: throughput (bản ghi/giờ) và thời gian xử lý.
+- Real-time Sales Contest: Rule "số giao dịch trong 60 phút" theo danh mục; streaming cập nhật aggregates và trạng thái contest; app hiển thị tiến độ theo thời gian thực. KPI trình diễn: P95 latency đánh giá rule và tốc độ cập nhật leaderboard.
+
+6) Hiệu năng & Độ tin cậy
+- Latency ngân sách: Rule eval 1–5ms từ Redis; fallback DynamoDB <10ms. Tổng E2E vẫn dưới 100ms khi kết hợp với inference.
+- Version pinning: mọi request gắn `ruleset_version` để đảm bảo tái lập (reproducibility). Rollback ngay lập tức bằng cách đổi con trỏ `active_version`.
+- Quan sát: log có cấu trúc cho `eligibility`, `matched_rule`, `explanation`, hỗ trợ kiểm toán và xử lý khiếu nại.
 
 ---
 ### **Chương 5: Hiện Thực Hóa Các Module Nâng Cao**
@@ -620,6 +973,18 @@ Bài toán: Chọn tập hợp khách hàng để tối đa hóa lợi nhuận, 
 
 Nếu chọn tham lam (greedy) theo lợi nhuận cao nhất trước, có thể chọn khách hàng B và A, nhưng tổng chi phí sẽ vượt ngân sách (600,000 + 200,000 = 1.2 tỷ VND). Điều này cho thấy sự cần thiết của thuật toán tối ưu hóa.
 
+##### Loại khuyến mãi hỗ trợ & ràng buộc (Adaptability)
+
+Optimizer hỗ trợ đa dạng loại promotion và ràng buộc thực tế, không cần thay đổi code:
+- Cashback: phần trăm hoặc số tiền cố định, kèm trần chi tiêu (cap) và thời hạn.
+- Tiered rewards: lợi ích theo hạng (Bronze/Silver/Gold) hoặc theo ngưỡng spend.
+- Sales contests: leaderboard theo thời gian thực với quota/giới hạn người thắng.
+- Challenge programs: hoàn thành N giao dịch hoặc đạt KPI trong cửa sổ thời gian để mở khóa thưởng.
+- Time-limited flash sales: ưu đãi theo khung giờ/sự kiện.
+- Merchant-specific & category campaigns: áp dụng theo MCC/nhóm sản phẩm/địa lý.
+
+Ràng buộc có thể cấu hình qua Rule Engine/UI (không cần deploy): giới hạn tần suất liên lạc, ngân sách theo phân khúc, loại trừ nhóm DNC, và ưu tiên theo chiến dịch.
+
 #### **5.2. Bộ Lọc An Toàn "Do-No-Harm" (Guardrails)**
 
 Mục tiêu:
@@ -684,6 +1049,51 @@ Lời khuyên triển khai:
 
 ---
 
+#### **5.4. Explainability là Tính năng Lõi (SHAP/LIME trong Inference)**
+
+Explainability không chỉ là tầm nhìn tương lai mà là tính năng bắt buộc của MVP: mỗi quyết định phải có “vì sao” đi kèm, phục vụ minh bạch với khách hàng, kiểm toán nội bộ, và phân tích vận hành.
+
+1) Hợp đồng đầu ra (API Contract)
+- Mọi response realtime (mục 4.2) trả về khối `model.explanation` gồm `primary_factors` (reason codes top-K) và `threshold_met` (nếu liên quan đến rule eligibility).
+- Lưu trữ bản ghi explainability vào Kinesis → S3/Redshift để dashboard có thể hiển thị “Top lý do” theo chiến dịch/segment.
+
+2) Kỹ thuật và lộ trình tính toán
+- Tree-based models (UpliftRF, CatBoostUplift): dùng TreeSHAP nội tuyến tại endpoint. Triển khai bằng thư viện `shap` hoặc CatBoost SHAP native; chỉ xuất top-K (K=3–5) theo trị tuyệt đối để tiết kiệm băng thông.
+- DR-Learner/Meta-Learners: ưu tiên KernelSHAP/LIME là async (batch hậu trường) do chi phí cao; realtime trả về reason codes dựa trên Rule Engine + các aggregates quan trọng (ví dụ: weekly_spend_vnd, customer_tier, engagement_score).
+- Caching: với feature ổn định (tier, segment), cache sẵn đóng góp điển hình theo bucket để giảm thời gian.
+
+3) Ngân sách hiệu năng
+- Mục tiêu E2E < 100ms giữ nguyên. Phân bổ tham chiếu: Feature fetch (5–10ms) + Inference (20–40ms) + Explainability (2–8ms TreeSHAP hoặc 0ms nếu dùng reason codes) + Overhead còn lại.
+- Với mô hình không hỗ trợ TreeSHAP nhanh, dùng chiến lược two-tier: reason codes realtime + SHAP async.
+
+4) An toàn, bảo mật và tuân thủ
+- Loại bỏ/ẩn các feature nhạy cảm khỏi explanation (PII). Chỉ hiển thị các chỉ số tổng hợp được phép (ví dụ: “weekly spend”, “engagement level”).
+- Chuẩn hóa từ ngữ dễ hiểu, tránh thuật ngữ thuần kỹ thuật cho khách hàng.
+- Gắn version model và ruleset vào mỗi explanation để phục vụ audit, tái lập.
+
+5) Ví dụ payload
+```json
+{
+    "decision": "ELIGIBLE",
+    "uplift_score": 0.085,
+    "explanation": {
+        "primary_factors": [
+            "Customer spent 5.2M VND in Dining category in last 7 days (+0.04 uplift)",
+            "Has Gold tier status (+0.03 uplift)",
+            "High engagement with mobile app (+0.015 uplift)"
+        ],
+        "threshold_met": "Spending > 5M VND in target category"
+    }
+}
+```
+
+6) Tích hợp MLOps
+- Bổ sung kiểm thử hồi quy cho explanation: ổn định top-K qua phiên bản, phát hiện drift của lý do (ví dụ, nếu lý do “Dining” biến mất bất thường, tạo cảnh báo để điều tra dữ liệu).
+- Lưu SHAP distribution theo thời gian để phát hiện bias/drift trong đóng góp feature, liên kết với Model Monitor.
+
+> Liên kết: Phần 6.3 trước đây mô tả Explainability như tầm nhìn; nay được nâng cấp thành tính năng lõi tại mục 5.4 và tích hợp trực tiếp vào luồng realtime 4.2.
+
+
 ### **Chương 6: Lộ Trình Triển Khai & Tầm Nhìn Tương Lai**
 
 "Uplift Engine" không chỉ là một giải pháp cho cuộc thi Hackathon, mà được thiết kế như một nền tảng cốt lõi có thể được triển khai và mở rộng trong môi trường thực tế của VPBank. Chương này vạch ra lộ trình triển khai theo từng giai đoạn và tầm nhìn dài hạn về việc tái sử dụng nền tảng này.
@@ -726,6 +1136,15 @@ Sau khi chứng minh giá trị ở miền khuyến mãi, cùng các mô-đun t�
 - Dynamic Pricing: Ước tính uplift theo mức giá (price-sensitive uplift). Với các sản phẩm phù hợp (bảo hiểm, phí dịch vụ), mô hình ước tính phân phối hiệu ứng theo price ladder, cho phép chọn mức giá vừa tối ưu lợi nhuận vừa giảm phản ứng tiêu cực.
 
 Điểm mấu chốt: giữ nguyên các nguyên tắc MLOps, Feature Store và giám sát drift; bổ sung guardrails chuyên biệt (giới hạn tần suất/giá tối thiểu/trần chiết khấu) để đảm bảo tuân thủ và trải nghiệm khách hàng.
+
+##### Tính thích ứng (Adaptability) & thay đổi rule không cần code
+
+- Loại khuyến mãi hỗ trợ (không giới hạn):
+    - Cashback (phần trăm/cố định), tiered rewards (Bronze/Silver/Gold), sales contests (leaderboard), challenge programs (N giao dịch để mở khóa), flash sales theo thời gian, ưu đãi theo merchant hoặc theo danh mục sản phẩm.
+- Thay đổi rule không cần code:
+    - Business users chỉnh sửa rule trên UI, lưu JSON/YAML trong DynamoDB.
+    - Publish có hiệu lực tức thời (qua cache invalidation & version pinning), không cần triển khai lại dịch vụ.
+    - Theo dõi phiên bản và audit trail đầy đủ (Streams → S3/Redshift) để rollback hoặc kiểm toán khi cần.
 
 ---
 
@@ -789,6 +1208,55 @@ Chúng tôi thực hiện dự án theo Agile để gia tăng tốc độ học 
 
 ### **Phụ lục A: Metric chuẩn & IaC mẫu (Monitoring & Alerting)**
 
+---
+
+#### **6.5. Demo Scenarios: Cashback (Batch) & Sales Contest (Real-time)**
+
+Mục tiêu: Chuẩn bị hai kịch bản demo end-to-end theo yêu cầu của ban tổ chức, có dữ liệu mẫu, đầu ra mong đợi và chỉ số hiệu năng.
+
+##### Scenario 1 — Batch-driven Cashback Program
+
+- Use case: Chương trình hoàn tiền hàng tháng cho KH chi tiêu ≥ 5,000,000 VND tại danh mục Dining trong kỳ.
+- Data flow (batch): Redshift (transactions) → Glue/EMR feature engineering → Offline Feature Store (S3) → Model Scoring (batch) → Eligibility determination (compiled rules) → Redshift output.
+- Timeline: Lên lịch đầu mỗi tháng; xử lý 1,000,000 giao dịch trong ~6 giờ (tham chiếu EMR Serverless / Glue number-of-DPU thích hợp).
+- Inputs (mẫu):
+    - transactions.csv: customer_id, txn_ts, amount_vnd, mcc_category
+    - customers.csv: customer_id, tier, segment, engagement_score
+- Outputs (mẫu):
+    - eligible_customers.csv: customer_id, matched_rule_id, explanation
+    - scored_customers.csv: customer_id, uplift_score, uplift_std_error
+- Performance metrics:
+    - Throughput: ≥ 3,000 records/second (end-to-end batch window ≤ 6h cho 1M giao dịch)
+    - Cost estimate: Glue DPUs/EMR vCPU-hours (ghi lại trong báo cáo demo)
+    - Data quality checks: % bản ghi lỗi < 0.5%
+
+Ví dụ explanation:
+"Customer spent 6.1M VND in Dining category this month, Gold tier → eligible for 100K cashback"
+
+##### Scenario 2 — Real-time Sales Contest
+
+- Use case: Flash sale contest — 100 khách hàng đầu tiên chi tiêu ≥ 1,000,000 VND trong 2 giờ sẽ nhận thưởng.
+- Data flow (real-time): MSK/Kinesis (transactions stream) → Lambda consumer cập nhật aggregates → Decision Lambda đánh giá Rule + Uplift + Guardrails → Notification.
+- Timeline: Sự kiện theo thời gian thực, E2E response < 100ms.
+- Inputs (mẫu):
+    - transaction event (JSON): customerId, amount_vnd, category, txn_ts
+- Outputs (mẫu):
+    - eligibility_event (JSON): { customerId, eligible: true/false, matched_rule_id, explanation }
+    - leaderboard (Redis/Redshift): top_100 customers with timestamps
+- Performance metrics:
+    - P95 latency: < 100ms (API Gateway + Lambda + Rule eval + inference)
+    - Update frequency: leaderboard refresh ≤ 1s
+    - Error rate: < 1% trong cửa sổ 5 phút
+
+Gợi ý dữ liệu mẫu
+- Thêm file `data/sample_transactions.csv` (~5–10K dòng) và `data/sample_customers.csv` (~5K dòng) để chạy demo local.
+- Cập nhật `src/notebooks/1.0-data-simulation.ipynb` (hoặc script) để sinh dữ liệu hợp lý theo hai scenario.
+
+Sơ đồ & liên kết
+- Mục 3.2 (sơ đồ kiến trúc) và 3.5 (Rule Engine) cho thấy đường đi dữ liệu/đánh giá rule.
+- Mục 4.3 mô tả chi tiết pipeline cấu hình/đánh giá Rule ở cả batch/stream/realtime.
+- Mục 5.1/5.2 bổ sung tối ưu ngân sách và guardrails trong quyết định.
+
 #### A.1. Metric chuẩn theo dịch vụ
 
 - API Gateway (namespace: `AWS/ApiGateway`)
@@ -804,6 +1272,18 @@ Chúng tôi thực hiện dự án theo Agile để gia tăng tốc độ học 
     - Dimensions: `EndpointName`/`VariantName`.
 
 Lưu ý: Chuẩn hóa P95/P99 theo SLO nội bộ; đặt ngưỡng cảnh báo khác nhau cho giờ cao điểm/ngoài giờ.
+
+- Amazon Redshift (namespace: `AWS/Redshift`)
+    - Metrics (query performance): `QueryDuration` (Average/Maximum), `WLMQueueLength` (Average), `WLMQueriesCompletedPerSecond` (Average).
+    - Metrics (capacity/health): `CPUUtilization` (Average), `DatabaseConnections` (Average), `PercentageDiskSpaceUsed` (Average).
+    - Dimensions: `ClusterIdentifier` (bắt buộc), tùy chọn `WLMQueueName`/`ServiceClass` nếu theo queue.
+    - SLO gợi ý: `QueryDuration (Avg)` < 30s (5–10 phút), `WLMQueueLength` < 5 ổn định, `DatabaseConnections` dưới ngưỡng pool.
+
+- ElastiCache for Redis (namespace: `AWS/ElastiCache`)
+    - Metrics (hit rate): `CacheHits`, `CacheMisses` (dùng Metric Math để tính CacheHitRate = hits/(hits+misses)).
+    - Metrics (health): `EngineCPUUtilization` (Average), `CurrConnections` (Average), `Evictions` (Sum), `FreeableMemory` (Average), `ReplicationLag` (nếu có).
+    - Dimensions: `CacheClusterId`/`CacheNodeId` (hoặc `ReplicationGroupId` tùy cấu hình cụm).
+    - SLO gợi ý: CacheHitRate ≥ 90–95% (5–10 phút), `Evictions` ≈ 0 ổn định, `EngineCPUUtilization` < 80%.
 
 #### A.2. Terraform mẫu (CloudWatch Alarm + SNS)
 
@@ -937,6 +1417,121 @@ resource "aws_cloudwatch_metric_alarm" "apigw_5xx_rate" {
 
     alarm_actions = [aws_sns_topic.alerts.arn]
 }
+
+# Amazon Redshift — Query Duration (Average > 30s over 10m)
+resource "aws_cloudwatch_metric_alarm" "redshift_query_duration_avg" {
+    alarm_name          = "redshift-${var.redshift_cluster_id}-query-duration-avg-gt-30s"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 30
+    evaluation_periods  = 2
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Redshift average QueryDuration > 30s over 10m"
+
+    metric_name   = "QueryDuration"
+    namespace     = "AWS/Redshift"
+    period        = 300
+    statistic     = "Average"
+    dimensions = {
+        ClusterIdentifier = var.redshift_cluster_id
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+
+# Amazon Redshift — WLM Queue Length (Average > 5 over 10m)
+resource "aws_cloudwatch_metric_alarm" "redshift_wlm_queue" {
+    alarm_name          = "redshift-${var.redshift_cluster_id}-wlm-queue-length-gt-5"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 5
+    evaluation_periods  = 2
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Redshift WLMQueueLength > 5 over 10m (consider queue tuning or slot scaling)"
+
+    metric_name   = "WLMQueueLength"
+    namespace     = "AWS/Redshift"
+    period        = 300
+    statistic     = "Average"
+    dimensions = {
+        ClusterIdentifier = var.redshift_cluster_id
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+
+# ElastiCache Redis — Cache Hit Rate (Metric Math: hits/(hits+misses) < 90%)
+resource "aws_cloudwatch_metric_alarm" "redis_cache_hit_rate_low" {
+    alarm_name          = "redis-${var.redis_cluster_id}-cache-hit-rate-lt-90pct"
+    comparison_operator = "LessThanThreshold"
+    threshold           = 0.90
+    evaluation_periods  = 3
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Redis cache hit rate < 90% over 5m — verify key TTLs, eviction policy, and hot set sizing"
+
+    metric_query {
+        id          = "hits"
+        return_data = false
+        metric {
+            metric_name = "CacheHits"
+            namespace   = "AWS/ElastiCache"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { CacheClusterId = var.redis_cluster_id, CacheNodeId = var.redis_node_id }
+        }
+    }
+
+    metric_query {
+        id          = "misses"
+        return_data = false
+        metric {
+            metric_name = "CacheMisses"
+            namespace   = "AWS/ElastiCache"
+            period      = 60
+            stat        = "Sum"
+            dimensions  = { CacheClusterId = var.redis_cluster_id, CacheNodeId = var.redis_node_id }
+        }
+    }
+
+    # total = hits + misses
+    metric_query {
+        id          = "total"
+        expression  = "hits + misses"
+        label       = "Total Requests"
+        return_data = false
+    }
+
+    metric_query {
+        id          = "rate"
+        expression  = "hits / MAX([total,1])"
+        label       = "Redis Cache Hit Rate"
+        return_data = true
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
+
+# ElastiCache Redis — Engine CPU (Average > 80% over 10m)
+resource "aws_cloudwatch_metric_alarm" "redis_engine_cpu_high" {
+    alarm_name          = "redis-${var.redis_cluster_id}-engine-cpu-gt-80pct"
+    comparison_operator = "GreaterThanThreshold"
+    threshold           = 80
+    evaluation_periods  = 2
+    datapoints_to_alarm = 2
+    treat_missing_data  = "notBreaching"
+    alarm_description   = "Redis EngineCPUUtilization > 80% over 10m — consider scaling or tuning commands"
+
+    metric_name   = "EngineCPUUtilization"
+    namespace     = "AWS/ElastiCache"
+    period        = 300
+    statistic     = "Average"
+    dimensions = {
+        CacheClusterId = var.redis_cluster_id
+    }
+
+    alarm_actions = [aws_sns_topic.alerts.arn]
+}
 ```
 
 #### A.3. CloudFormation mẫu (YAML)
@@ -995,3 +1590,59 @@ Gợi ý triển khai:
 - Đặt biến `var.stage`, `var.api_id`, `var.endpoint_name`, `var.lambda_name` qua Terraform variables/CloudFormation Parameters.
 - Tạo một Dashboard tổng hợp (API+Lambda+Endpoint) cho từng môi trường (dev/uat/prod) với tiền tố thống nhất.
 - Bật log retention (14–30 ngày) cho Log Group của Lambda/ApiGateway để giảm chi phí.
+ - Bổ sung biến: `var.redshift_cluster_id`, `var.redis_cluster_id`, `var.redis_node_id` (hoặc `var.redis_replication_group_id`) cho các alarm mới.
+
+---
+
+### **Phụ lục B: Ma trận Loại Khuyến Mãi vs Ràng Buộc (Promotion Types vs Constraints)**
+
+Bảng sau tổng hợp các loại khuyến mãi phổ biến và các “nút vặn” (knobs) có thể cấu hình qua Rule Engine/UI mà không cần thay đổi code. Tất cả ràng buộc đều được version hóa, có audit trail và hiệu lực tức thời sau Publish (kèm cache invalidation).
+
+| Loại khuyến mãi | Budget tổng (cap) | Cap theo KH | Quy tắc Eligibility (RuleSet) | Giới hạn tần suất (frequency) | Cửa sổ thời gian | Phạm vi MCC/Category/Merchant | Mục tiêu Optimizer | Guardrails |
+|---|---|---|---|---|---|---|---|---|
+| Cashback % | Có | Có | Có | Có | Có | Có | Profit@Budget | DNC, CI lower bound |
+| Cashback cố định | Có | Có | Có | Có | Có | Có | Profit@Budget | DNC, CI lower bound |
+| Tiered rewards | Có | Có | Có (tiers) | Có | Có | Có | Profit@Tier | DNC, tier consistency |
+| Sales contest (leaderboard) | Có (prize pool) | Có (1 lần) | Có | Có | Khung giờ | Có | Max winners@time | Anti-gaming, fairness |
+| Challenge (N giao dịch/KPI) | Có | Có | Có (progress) | Có | Cửa sổ N ngày | Có | Max completion@budget | Abuse checks |
+| Flash sales (time-limited) | Có | Có | Có (time window) | Có | Khung giờ | Có | Profit@TimeWindow | Rate limit, surge |
+| Merchant-specific offers | Có | Có | Có (MCC/merchant) | Có | Có | Ràng buộc merchant | Profit@Merchant | Brand safety |
+| Category campaigns | Có | Có | Có (category) | Có | Có | Ràng buộc category | Profit@Category | Brand safety |
+
+Ghi chú sử dụng:
+- “Budget tổng/Cap theo KH/Frequency” cấu hình trực tiếp trong RuleSet; Optimizer đọc cùng thông số để phân bổ chi tiêu.
+- “Mục tiêu Optimizer” là hàm mục tiêu có thể chọn theo bối cảnh (Profit@Budget, Profit@Category, Max winners, v.v.).
+- Guardrails được áp dụng ở quyết định realtime: DNC, confidence lower bound > 0, giới hạn tần suất liên lạc, và các luật chống lạm dụng/anti-gaming.
+
+---
+
+### **Phụ lục C: Đối chiếu yêu cầu & giả định (Traceability & Assumptions)**
+
+Đối chiếu yêu cầu từ ban tổ chức với các phần trong tài liệu để đảm bảo đầy đủ tiêu chí đánh giá.
+
+- Processing Architecture (batch/near real-time/real-time):
+    - Tham chiếu: 3.2 (kiến trúc), 3.3 (thành phần), 4.2 (real-time), 4.3 (batch/streaming), 4.2.2 (benchmarks).
+
+- Data Handling (structured/unstructured + cleaning/enrichment/transformation):
+    - Tham chiếu: 3.3 (Feature Store, structured vs unstructured), 4.1.1 (Data Cleaning/Enrichment/Transformation), 4.1 (MLOps pipeline).
+
+- Promotion Configurability (non-technical rule config):
+    - Tham chiếu: 3.4 (UI & AppSync), 3.5 (Rule Engine), 4.3 (flows), 6.2 (no-code rule change).
+
+- Explainability & Transparency (reasons in outputs):
+    - Tham chiếu: 4.2 (response payload có explanation), 5.4 (Explainability là tính năng lõi), 6.3 (governance/XAI).
+
+- Adaptability (diverse promotion types + easy modification):
+    - Tham chiếu: 5.1 (loại khuyến mãi & ràng buộc), 6.2 (mở rộng và thay đổi rule không cần code), Phụ lục B (ma trận loại khuyến mãi vs ràng buộc).
+
+- Functional Demo (2 scenarios):
+    - Tham chiếu: 6.5 (Batch Cashback, Real-time Sales Contest), 4.3 (flows liên quan), 4.2.2 (chỉ tiêu hiệu năng minh họa năng lực xử lý).
+
+- Tech Stack (languages/cloud/db/others):
+    - Tham chiếu: 3.2 (tech stack callout), 3.3 (dịch vụ AWS), 3.5 (runtime triển khai Rule Engine), ghi chú serverless-first và tùy chọn Docker/EKS.
+
+Giả định chính (Key Assumptions):
+- Dữ liệu A/B hoặc log exposure/outcome có thể tạo/simulate được để huấn luyện/đánh giá uplift.
+- Quyền truy cập dịch vụ AWS cơ bản (API Gateway, Lambda, SageMaker, Redshift, ElastiCache, Kinesis/MSK) sẵn có ở môi trường demo.
+- Giới hạn độ trễ mục tiêu áp dụng cho payload nhỏ (≤ 10–20 KB) và đường truyền ổn định; inference dùng instance phù hợp.
+- Business users có sẵn danh mục MCC/category mapping, ngưỡng ngân sách/cap, và quy trình phê duyệt đơn giản trong giai đoạn MVP.

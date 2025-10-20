@@ -50,6 +50,8 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}')) if isinstance(event, dict) else json.loads(event)
         # Expect features: age, income, number_of_transactions
+        # Accept both snake_case and camelCase ids for flexibility in demos
+        customer_id = body.get('customerId') or body.get('customer_id') or 'N/A'
         customer_features = pd.DataFrame([{
             'age': body.get('age'),
             'income': body.get('income'),
@@ -71,7 +73,7 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({
-                "customerId": body.get('customerId', 'N/A'),
+                "customerId": customer_id,
                 "upliftScore": uplift_value,
                 "recommendation": recommendation
             })

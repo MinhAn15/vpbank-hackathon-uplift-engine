@@ -1,0 +1,9 @@
+customer_id,tier,segment,engagement_score
+1001,Gold,NEO_ACTIVE,0.82
+1002,Silver,NEO_ACTIVE,0.55
+1003,Gold,NEO_ACTIVE,0.77
+1004,Bronze,NEO_NEW,0.33
+1005,Platinum,NEO_ACTIVE,0.91
+1006,Silver,NEO_DORMANT,0.22
+1007,Gold,NEO_ACTIVE,0.68
+1008,Bronze,NEO_NEW,0.29

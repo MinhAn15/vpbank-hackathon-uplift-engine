@@ -51,8 +51,11 @@
 > - Net Profit Uplift: Lợi nhuận thuần gia tăng = Incremental Revenue − Cost of Treatment.
 > - Profit@K: Lợi nhuận (VND) khi target Top-K% theo Uplift Score.
 > - Tên biến trong code: dùng snake_case, ví dụ `uplift_score`, `uplift_std_error`.
+> - Treatment (Tác nhân): Bất kỳ can thiệp marketing áp dụng lên khách hàng, không chỉ khuyến mãi; bao gồm email, SMS, push/in-app notification, banner/offer trong app/web, cuộc gọi telesales/call center, v.v.
 
-### **1. Tóm Tắt Quản Trị (Executive Summary)**
+### **Tóm Tắt Quản Trị (Executive Summary)**
+
+Hãy tưởng tượng cùng một ngân sách 5 tỷ đồng cho khuyến mãi, nhưng thay vì “rải” và hy vọng, mỗi đồng đều được đặt đúng chỗ — vào những khách hàng thực sự có thể được thuyết phục. Đó là điều Uplift Engine mang lại: biến marketing từ chi phí thành động cơ tăng trưởng bằng Causal AI. Chúng ta không hỏi “Ai sẽ mua?”, mà hỏi “Ai sẽ thay đổi hành vi khi có khuyến mãi?” rồi đo lường bằng Net Profit Uplift để đảm bảo mỗi quyết định đều sinh lời.
 
 Các nền tảng dữ liệu khuyến mãi truyền thống thường:
 - Tập trung vào báo cáo quá khứ và dự đoán tương lai, nhưng ít trả lời câu hỏi: hành động nào mang lại lợi nhuận cao nhất?
@@ -72,15 +75,46 @@ Kiến trúc và tác động:
 
 #### **1.1. Phân Tích "Nỗi Đau": Mô hình 4 Nhóm Khách Hàng**
 
-Gốc rễ của vấn đề lãng phí trong các chiến dịch marketing dựa trên dự đoán (predictive marketing) nằm ở việc các mô hình này đối xử với mọi khách hàng có vẻ tiềm năng như nhau. Lý thuyết Causal Inference (Suy luận Nhân quả) cung cấp một lăng kính rõ ràng hơn, phân loại khách hàng thành 4 nhóm riêng biệt khi đối mặt với một tác nhân (ví dụ: một chương trình khuyến mãi):
+Gốc rễ của vấn đề lãng phí trong các chiến dịch marketing dựa trên dự đoán (predictive marketing) nằm ở việc các mô hình này đối xử với mọi khách hàng có vẻ tiềm năng như nhau. Lý thuyết Causal Inference (Suy luận Nhân quả) cung cấp một lăng kính rõ ràng hơn, phân loại khách hàng thành 4 nhóm riêng biệt khi đối mặt với một tác nhân (treatment) — tức là bất kỳ can thiệp marketing nào: khuyến mãi/ưu đãi, email, SMS, push/in-app notification, banner/offer trong app/web, cuộc gọi telesales/call center, v.v.:
 
-* **Persuadables (Người có thể thuyết phục):** Đây là nhóm khách hàng chỉ thực hiện hành vi chuyển đổi (ví dụ: mở thẻ tín dụng) **khi và chỉ khi** họ nhận được khuyến mãi. Đây là mỏ vàng, là nguồn tạo ra **lợi nhuận gia tăng (incremental profit)** duy nhất cho chiến dịch.
+• Lưu ý thuật ngữ: trong tài liệu này, “tác nhân” (treatment) được hiểu là mọi hình thức can thiệp marketing áp dụng lên khách hàng, không chỉ riêng khuyến mãi.
+
+Để dễ theo dõi, phần dưới sắp xếp theo logic câu chuyện: bắt đầu từ nhóm “ai cũng nghĩ đến” (Sure Things), rồi đến nhóm tạo giá trị thật (Persuadables), và cuối cùng là hai nhóm gây lãng phí/thiệt hại (Lost Causes, Sleeping Dogs).
 
 * **Sure Things (Người chắc chắn mua):** Nhóm khách hàng này sẽ chuyển đổi dù có hay không có khuyến mãi. Việc gửi khuyến mãi cho họ không tạo ra thêm doanh thu, mà chỉ làm **tăng chi phí không cần thiết**, trực tiếp làm xói mòn lợi nhuận của chiến dịch. Đây là hố đen lãng phí ngân sách lớn nhất.
+
+* **Persuadables (Người có thể thuyết phục):** Đây là nhóm khách hàng chỉ thực hiện hành vi chuyển đổi (ví dụ: mở thẻ tín dụng) **khi và chỉ khi** họ nhận được khuyến mãi. Đây là mỏ vàng, là nguồn tạo ra **lợi nhuận gia tăng (incremental profit)** duy nhất cho chiến dịch.
 
 * **Lost Causes (Người không thể lay chuyển):** Nhóm này sẽ không chuyển đổi trong mọi trường hợp, dù có nhận được khuyến mãi hay không. Mọi nỗ lực marketing nhắm vào họ đều là chi phí vô ích.
 
 * **Sleeping Dogs (Người tiêu cực):** Đây là nhóm nguy hiểm nhất. Việc gửi khuyến mãi không những không mang lại chuyển đổi, mà còn có thể gây ra phản ứng tiêu cực (cảm thấy bị làm phiền, đánh dấu spam, hoặc thậm chí là rời bỏ dịch vụ - churn). Nhóm này gây hại trực tiếp cho thương hiệu và mối quan hệ khách hàng.
+
+##### Ví dụ:
+
+Giả sử có 100 khách hàng trong một chiến dịch thử nghiệm A/B.
+
+- Phân bổ theo 4 nhóm (ước tính thực tế):
+    - Sure Things: 30 khách hàng
+    - Persuadables: 15 khách hàng
+    - Lost Causes: 50 khách hàng
+    - Sleeping Dogs: 5 khách hàng
+
+Bảng so sánh “Có khuyến mãi” vs “Không có khuyến mãi”:
+
+| Nhóm             | Nếu Có khuyến mãi | Nếu Không khuyến mãi | Ghi chú ảnh hưởng |
+|------------------|--------------------|-----------------------|-------------------|
+| Sure Things (30) | 30 chuyển đổi      | 30 chuyển đổi         | Doanh thu tự nhiên (không do chiến dịch) |
+| Persuadables (15)| 15 chuyển đổi      | 0 chuyển đổi          | Giá trị gia tăng thực sự |
+| Lost Causes (50) | 0 chuyển đổi       | 0 chuyển đổi          | Không giá trị, tốn chi phí nếu target |
+| Sleeping Dogs (5)| Có thể giảm tương tác/complaint | 0 chuyển đổi | Có rủi ro, cần guardrails |
+
+Tổng kết lợi ích gia tăng (incremental):
+- Số chuyển đổi gia tăng thật sự đến từ Persuadables: 15.
+- Chi phí lãng phí nếu target nhầm (Sure Things, Lost Causes, Sleeping Dogs) có thể chiếm phần lớn ngân sách.
+
+Liên hệ thực chiến: Uplift Model giúp “lọc” để ưu tiên nhóm Persuadables, tránh lãng phí vào Sure Things/Lost Causes và hạn chế rủi ro Sleeping Dogs (thông qua Guardrails ở Chương 5).
+
+Vấn đề là: các mô hình propensity truyền thống hoàn toàn mơ hồ trước sự phân biệt quan trọng này. Hãy cùng xem vì sao.
 
 #### **1.2. Tại Sao Các Mô Hình Propensity Truyền Thống Thất Bại?**
 
